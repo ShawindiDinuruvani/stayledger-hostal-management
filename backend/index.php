@@ -30,7 +30,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 if ($method === 'GET' && $uri === '/api/allocations/dashboard') {
-    $rooms = $pdo->query('SELECT * FROM vw_room_occupancy ORDER BY room_number ASC')->fetchAll();
+    $rooms = $pdo->query('SELECT * FROM vw_room_occupancy')->fetchAll();
 
     $allocations = $pdo->query("
         SELECT 
@@ -74,7 +74,6 @@ if ($method === 'GET' && $uri === '/api/allocations/dashboard') {
     exit;
 }
 
-// POST Allocate Room (ACID Transaction + Row Locking)
 if ($method === 'POST' && $uri === '/api/allocations') {
     try {
         $pdo->beginTransaction();
@@ -119,7 +118,6 @@ if ($method === 'POST' && $uri === '/api/allocations') {
     exit;
 }
 
-// POST Transfer
 if ($method === 'POST' && preg_match('#^/api/allocations/(\d+)/transfer$#', $uri, $m)) {
     $allocId = (int) $m[1];
     try {
@@ -184,7 +182,6 @@ if ($method === 'POST' && preg_match('#^/api/allocations/(\d+)/transfer$#', $uri
     exit;
 }
 
-// POST Checkout
 if ($method === 'POST' && preg_match('#^/api/allocations/(\d+)/checkout$#', $uri, $m)) {
     $allocId = (int) $m[1];
     try {

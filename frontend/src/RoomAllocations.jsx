@@ -13,7 +13,11 @@ import {
   X,
   RefreshCw,
   Leaf,
-  Download
+  Download,
+  Users,
+  LayoutDashboard,
+  ChevronDown,
+  MoreHorizontal
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api';
@@ -26,6 +30,7 @@ export default function RoomAllocations() {
   const [apiError, setApiError] = useState('');
   const [toast, setToast] = useState('');
 
+  const [activeTab, setActiveTab] = useState('occupancy');
   const [floorFilter, setFloorFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedRoomFilter, setSelectedRoomFilter] = useState(null);
@@ -103,6 +108,9 @@ export default function RoomAllocations() {
 
   const filteredAllocations = useMemo(() => {
     return allocations.filter(a => {
+      if (activeTab === 'active' && a.status !== 'Active') return false;
+      if (activeTab === 'history' && a.status === 'Active') return false;
+
       const matchesStatus = statusFilter === 'All' || a.status === statusFilter;
       const matchesRoom = !selectedRoomFilter || a.room === selectedRoomFilter;
       const q = search.toLowerCase();
@@ -114,7 +122,7 @@ export default function RoomAllocations() {
         (a.remarks || '').toLowerCase().includes(q);
       return matchesStatus && matchesRoom && matchesSearch;
     });
-  }, [allocations, statusFilter, selectedRoomFilter, search]);
+  }, [allocations, activeTab, statusFilter, selectedRoomFilter, search]);
 
   const handleAllocateSubmit = async e => {
     e.preventDefault();
@@ -222,282 +230,344 @@ export default function RoomAllocations() {
   };
 
   return (
-    <div className="sl-alloc-page">
-      <header className="sl-alloc-header">
-        <div>
-          <span className="sl-brand-pill">
-            <Leaf size={13} /> StayLedger · Emarald Girls Hostel
-          </span>
-          <h1>Room Allocations, Transfers & Checkout</h1>
-          <p>Module: N.L. Lekamge (36934) — MySQL Transactions, Row Locking & Occupancy View</p>
-        </div>
-        <div className="sl-header-actions">
-          <button className="sl-btn sl-btn-secondary" onClick={exportCSV}>
-            <Download size={15} /> Export CSV
-          </button>
-          <button className="sl-btn sl-btn-secondary" onClick={fetchDashboardData}>
-            <RefreshCw size={15} /> Refresh DB
-          </button>
-          <button className="sl-btn sl-btn-primary" onClick={() => openAllocateModal()}>
-            <Plus size={16} /> Allocate Room
-          </button>
-        </div>
-      </header>
+    <div className="sl-layout">
+      <aside className="sl-sidebar">
+        <a className="sl-brand" href="#allocations">
+          <span className="sl-brand-icon"><Leaf size={22} /></span>
+          StayLedger<span className="sl-brand-dot">.</span>
+        </a>
 
-      {apiError && (
-        <div className="sl-alert">
-          <AlertCircle size={16} />
-          <span>{apiError}</span>
-        </div>
-      )}
-
-      <section className="sl-kpi-grid">
-        <div className="sl-kpi-card">
-          <div className="sl-kpi-top">
-            <span className="sl-kpi-icon"><BedDouble size={20} /></span>
-            <span className="sl-badge">vw_room_occupancy</span>
-          </div>
-          <span className="sl-kpi-label">Occupied Beds</span>
-          <strong>{metrics.occupiedBeds} / {metrics.totalBeds}</strong>
-          <small>{metrics.availableBeds} beds currently open</small>
-        </div>
-
-        <div className="sl-kpi-card">
-          <div className="sl-kpi-top">
-            <span className="sl-kpi-icon"><Building2 size={20} /></span>
-            <span className="sl-badge">FOR UPDATE Lock</span>
-          </div>
-          <span className="sl-kpi-label">Available Rooms</span>
-          <strong>{rooms.length - metrics.fullRooms} / {rooms.length}</strong>
-          <small>{metrics.fullRooms} room(s) at full capacity</small>
-        </div>
-
-        <div className="sl-kpi-card">
-          <div className="sl-kpi-top">
-            <span className="sl-kpi-icon"><ArrowLeftRight size={20} /></span>
-            <span className="sl-badge amber">ACID Transaction</span>
-          </div>
-          <span className="sl-kpi-label">Room Transfers</span>
-          <strong>{metrics.transfersCount}</strong>
-          <small>Completed atomic room swaps</small>
-        </div>
-
-        <div className="sl-kpi-card">
-          <div className="sl-kpi-top">
-            <span className="sl-kpi-icon"><Lock size={20} /></span>
-            <span className="sl-badge">Trigger Guard</span>
-          </div>
-          <span className="sl-kpi-label">Unallocated Residents</span>
-          <strong>{metrics.unallocatedCount}</strong>
-          <small>Eligible for room allocation</small>
-        </div>
-      </section>
-
-      <section className="sl-panel">
-        <div className="sl-panel-header">
+        <div className="sl-hostel-switch">
+          <span className="sl-hostel-avatar">E</span>
           <div>
-            <h2>Live Room Capacity (`vw_room_occupancy`)</h2>
-            <p>Click a room card to filter history or assign an open bed directly</p>
+            <strong>Emarald Girls Hostel</strong>
+            <small>Hostel workspace</small>
           </div>
-          <div className="sl-tabs">
-            {['All', 'First floor', 'Second floor'].map(fl => (
-              <button
-                key={fl}
-                className={'sl-tab ' + (floorFilter === fl ? 'active' : '')}
-                onClick={() => setFloorFilter(fl)}
-              >
-                {fl}
-              </button>
-            ))}
-          </div>
+          <ChevronDown size={14} />
         </div>
 
-        <div className="sl-room-grid">
-          {visibleRooms.map(rm => {
-            const isSelected = selectedRoomFilter === rm.room_number;
-            const isFull = rm.occupancy_status === 'Full';
-            return (
-              <div
-                key={rm.room_id}
-                className={'sl-room-card ' + (isSelected ? 'selected' : '')}
-                onClick={() => setSelectedRoomFilter(isSelected ? null : rm.room_number)}
-              >
-                <div className="sl-room-top">
-                  <div>
-                    <strong>Room {rm.room_number}</strong>
-                    <small>{rm.floor_name}</small>
+        <div className="sl-nav-label">WORKSPACE</div>
+        <nav className="sl-nav">
+          <button className="sl-nav-item">
+            <LayoutDashboard size={18} /><span>Dashboard</span>
+          </button>
+          <button className="sl-nav-item">
+            <Users size={18} /><span>Residents</span><small>60</small>
+          </button>
+          <button className="sl-nav-item">
+            <Building2 size={18} /><span>Rooms & floors</span>
+          </button>
+          <button className="sl-nav-item active">
+            <ArrowLeftRight size={18} /><span>Allocations</span><i />
+          </button>
+        </nav>
+
+        <div className="sl-sidebar-bottom">
+          <div className="sl-profile">
+            <span className="sl-avatar">NL</span>
+            <div>
+              <strong>Nimsara Lekamge</strong>
+              <small>Allocations Module</small>
+            </div>
+            <MoreHorizontal size={16} />
+          </div>
+        </div>
+      </aside>
+
+      <main className="sl-workspace">
+        <header className="sl-alloc-header">
+          <div>
+            <span className="sl-brand-pill">
+              <Leaf size={13} /> StayLedger · Emarald Girls Hostel
+            </span>
+            <h1>Room Allocations, Transfers & Checkout</h1>
+            <p>Module: N.L. Lekamge (36934) — MySQL Transactions, Row Locking & Occupancy View</p>
+          </div>
+          <div className="sl-header-actions">
+            <button className="sl-btn sl-btn-secondary" onClick={exportCSV}>
+              <Download size={15} /> Export CSV
+            </button>
+            <button className="sl-btn sl-btn-secondary" onClick={fetchDashboardData}>
+              <RefreshCw size={15} /> Refresh DB
+            </button>
+            <button className="sl-btn sl-btn-primary" onClick={() => openAllocateModal()}>
+              <Plus size={16} /> Allocate Room
+            </button>
+          </div>
+        </header>
+
+        {apiError && (
+          <div className="sl-alert">
+            <AlertCircle size={16} />
+            <span>{apiError}</span>
+          </div>
+        )}
+
+        <section className="sl-kpi-grid">
+          <div className="sl-kpi-card">
+            <div className="sl-kpi-top">
+              <span className="sl-kpi-icon"><BedDouble size={20} /></span>
+              <span className="sl-badge">vw_room_occupancy</span>
+            </div>
+            <span className="sl-kpi-label">Occupied Beds</span>
+            <strong>{metrics.occupiedBeds} / {metrics.totalBeds}</strong>
+            <small>{metrics.availableBeds} beds currently open</small>
+          </div>
+
+          <div className="sl-kpi-card">
+            <div className="sl-kpi-top">
+              <span className="sl-kpi-icon"><Building2 size={20} /></span>
+              <span className="sl-badge">FOR UPDATE Lock</span>
+            </div>
+            <span className="sl-kpi-label">Available Rooms</span>
+            <strong>{rooms.length - metrics.fullRooms} / {rooms.length}</strong>
+            <small>{metrics.fullRooms} room(s) at full capacity</small>
+          </div>
+
+          <div className="sl-kpi-card">
+            <div className="sl-kpi-top">
+              <span className="sl-kpi-icon"><ArrowLeftRight size={20} /></span>
+              <span className="sl-badge amber">ACID Transaction</span>
+            </div>
+            <span className="sl-kpi-label">Room Transfers</span>
+            <strong>{metrics.transfersCount}</strong>
+            <small>Completed atomic room swaps</small>
+          </div>
+
+          <div className="sl-kpi-card">
+            <div className="sl-kpi-top">
+              <span className="sl-kpi-icon"><Lock size={20} /></span>
+              <span className="sl-badge">Trigger Guard</span>
+            </div>
+            <span className="sl-kpi-label">Unallocated Residents</span>
+            <strong>{metrics.unallocatedCount}</strong>
+            <small>Eligible for room allocation</small>
+          </div>
+        </section>
+
+        <div className="sl-module-tabs">
+          <button
+            className={'sl-mod-tab ' + (activeTab === 'occupancy' ? 'active' : '')}
+            onClick={() => setActiveTab('occupancy')}
+          >
+            <Building2 size={16} /> Rooms 1–20 Occupancy Grid
+          </button>
+          <button
+            className={'sl-mod-tab ' + (activeTab === 'active' ? 'active' : '')}
+            onClick={() => setActiveTab('active')}
+          >
+            <ArrowLeftRight size={16} /> Active Allocations & Transfers
+          </button>
+          <button
+            className={'sl-mod-tab ' + (activeTab === 'history' ? 'active' : '')}
+            onClick={() => setActiveTab('history')}
+          >
+            <History size={16} /> Allocation History & Checkouts
+          </button>
+        </div>
+
+        {activeTab === 'occupancy' && (
+          <section className="sl-panel">
+            <div className="sl-panel-header">
+              <div>
+                <h2>Live Room Capacity (`vw_room_occupancy`)</h2>
+                <p>Showing Rooms 1 to 20 across First and Second floor</p>
+              </div>
+              <div className="sl-tabs">
+                {['All', 'First floor', 'Second floor'].map(fl => (
+                  <button
+                    key={fl}
+                    className={'sl-tab ' + (floorFilter === fl ? 'active' : '')}
+                    onClick={() => setFloorFilter(fl)}
+                  >
+                    {fl}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="sl-room-grid">
+              {visibleRooms.map(rm => {
+                const isSelected = selectedRoomFilter === rm.room_number;
+                const isFull = rm.occupancy_status === 'Full';
+                return (
+                  <div
+                    key={rm.room_id}
+                    className={'sl-room-card ' + (isSelected ? 'selected' : '')}
+                    onClick={() => {
+                      setSelectedRoomFilter(isSelected ? null : rm.room_number);
+                      setActiveTab('active');
+                    }}
+                  >
+                    <div className="sl-room-top">
+                      <div>
+                        <strong>Room {rm.room_number}</strong>
+                        <small>{rm.floor_name}</small>
+                      </div>
+                      <span className={'sl-badge ' + (isFull ? 'amber' : '')}>
+                        {isFull ? 'Full' : `${rm.available_beds} free`}
+                      </span>
+                    </div>
+
+                    <div className="sl-bed-bars">
+                      {Array.from({ length: Number(rm.capacity) }, (_, idx) => (
+                        <span
+                          key={idx}
+                          className={'sl-bed-bar ' + (idx < Number(rm.occupied_beds) ? 'occupied' : '')}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="sl-room-footer">
+                      <span>{rm.occupied_beds}/{rm.capacity} beds occupied</span>
+                      {!isFull ? (
+                        <button
+                          className="sl-mini-btn"
+                          onClick={e => {
+                            e.stopPropagation();
+                            openAllocateModal(rm.room_id);
+                          }}
+                        >
+                          + Assign
+                        </button>
+                      ) : (
+                        <span>Locked</span>
+                      )}
+                    </div>
                   </div>
-                  <span className={'sl-badge ' + (isFull ? 'amber' : '')}>
-                    {isFull ? 'Full' : `${rm.available_beds} free`}
-                  </span>
-                </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
-                <div className="sl-bed-bars">
-                  {Array.from({ length: Number(rm.capacity) }, (_, idx) => (
-                    <span
-                      key={idx}
-                      className={'sl-bed-bar ' + (idx < Number(rm.occupied_beds) ? 'occupied' : '')}
-                    />
-                  ))}
-                </div>
-
-                <div className="sl-room-footer">
-                  <span>{rm.occupied_beds}/{rm.capacity} beds occupied</span>
-                  {!isFull ? (
+        {(activeTab === 'active' || activeTab === 'history') && (
+          <section className="sl-panel">
+            <div className="sl-panel-header">
+              <div>
+                <h2>
+                  {activeTab === 'active' ? 'Active Room Allocations & Transfers' : 'Allocation History & Checkouts'}
+                  {selectedRoomFilter && (
                     <button
                       className="sl-mini-btn"
-                      onClick={e => {
-                        e.stopPropagation();
-                        openAllocateModal(rm.room_id);
-                      }}
+                      style={{ marginLeft: 10 }}
+                      onClick={() => setSelectedRoomFilter(null)}
                     >
-                      + Assign
+                      Room {selectedRoomFilter} ✕
                     </button>
-                  ) : (
-                    <span>Locked</span>
                   )}
+                </h2>
+                <p>{filteredAllocations.length} record(s) matching current view</p>
+              </div>
+
+              <div className="sl-controls">
+                <div className="sl-search">
+                  <Search size={15} />
+                  <input
+                    placeholder="Search resident, room, code…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
+            </div>
 
-      <section className="sl-panel">
-        <div className="sl-panel-header">
-          <div>
-            <h2>
-              Allocation, Transfer & Checkout History
-              {selectedRoomFilter && (
-                <button
-                  className="sl-mini-btn"
-                  style={{ marginLeft: 10 }}
-                  onClick={() => setSelectedRoomFilter(null)}
-                >
-                  Room {selectedRoomFilter} ✕
-                </button>
+            <div className="sl-table-wrap">
+              <table className="sl-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Resident</th>
+                    <th>Room</th>
+                    <th>From Date</th>
+                    <th>Until Date</th>
+                    <th>Status</th>
+                    <th>Remarks</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAllocations.map(row => (
+                    <tr key={row.allocation_id}>
+                      <td><span className="sl-code">{row.allocId}</span></td>
+                      <td>
+                        <strong>{row.residentName}</strong>
+                        <span className="sl-subtext">{row.residentCode}</span>
+                      </td>
+                      <td>
+                        <strong>Room {row.room}</strong>
+                        <span className="sl-subtext">{row.floor}</span>
+                      </td>
+                      <td>{row.startDate}</td>
+                      <td>{row.endDate || <strong>Ongoing</strong>}</td>
+                      <td>
+                        <span
+                          className={
+                            'sl-badge ' +
+                            (row.status === 'Transferred'
+                              ? 'amber'
+                              : row.status === 'Checked Out'
+                              ? 'neutral'
+                              : '')
+                          }
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                      <td>{row.remarks}</td>
+                      <td>
+                        {row.status === 'Active' ? (
+                          <div className="sl-actions">
+                            <button
+                              className="sl-act-btn transfer"
+                              onClick={() => {
+                                setFormError('');
+                                setSelectedAlloc(row);
+                                const freeRm = rooms.find(
+                                  r => r.available_beds > 0 && r.room_id !== row.room_id
+                                );
+                                setTransferForm({
+                                  target_room_id: freeRm ? freeRm.room_id : '',
+                                  transfer_date: todayStr,
+                                  reason: ''
+                                });
+                                setActiveModal('transfer');
+                              }}
+                            >
+                              <ArrowLeftRight size={13} /> Transfer
+                            </button>
+                            <button
+                              className="sl-act-btn checkout"
+                              onClick={() => {
+                                setFormError('');
+                                setSelectedAlloc(row);
+                                setCheckoutForm({
+                                  checkout_date: todayStr,
+                                  remarks: 'Standard checkout - keys returned'
+                                });
+                                setActiveModal('checkout');
+                              }}
+                            >
+                              <LogOut size={13} /> Checkout
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="sl-subtext"><History size={12} /> Closed</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredAllocations.length === 0 && (
+                <div style={{ padding: 36, textAlign: 'center', color: '#6e8077' }}>
+                  {loading ? 'Loading from MySQL...' : 'No matching allocation records found.'}
+                </div>
               )}
-            </h2>
-            <p>{filteredAllocations.length} record(s) from MySQL `room_allocations`</p>
-          </div>
-
-          <div className="sl-controls">
-            <div className="sl-tabs">
-              {['All', 'Active', 'Transferred', 'Checked Out'].map(st => (
-                <button
-                  key={st}
-                  className={'sl-tab ' + (statusFilter === st ? 'active' : '')}
-                  onClick={() => setStatusFilter(st)}
-                >
-                  {st}
-                </button>
-              ))}
             </div>
-            <div className="sl-search">
-              <Search size={15} />
-              <input
-                placeholder="Search resident, room, code…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="sl-table-wrap">
-          <table className="sl-table">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Resident</th>
-                <th>Room</th>
-                <th>From Date</th>
-                <th>Until Date</th>
-                <th>Status</th>
-                <th>Remarks</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAllocations.map(row => (
-                <tr key={row.allocation_id}>
-                  <td><span className="sl-code">{row.allocId}</span></td>
-                  <td>
-                    <strong>{row.residentName}</strong>
-                    <span className="sl-subtext">{row.residentCode}</span>
-                  </td>
-                  <td>
-                    <strong>Room {row.room}</strong>
-                    <span className="sl-subtext">{row.floor}</span>
-                  </td>
-                  <td>{row.startDate}</td>
-                  <td>{row.endDate || <strong>Ongoing</strong>}</td>
-                  <td>
-                    <span
-                      className={
-                        'sl-badge ' +
-                        (row.status === 'Transferred'
-                          ? 'amber'
-                          : row.status === 'Checked Out'
-                          ? 'neutral'
-                          : '')
-                      }
-                    >
-                      {row.status}
-                    </span>
-                  </td>
-                  <td>{row.remarks}</td>
-                  <td>
-                    {row.status === 'Active' ? (
-                      <div className="sl-actions">
-                        <button
-                          className="sl-act-btn transfer"
-                          onClick={() => {
-                            setFormError('');
-                            setSelectedAlloc(row);
-                            const freeRm = rooms.find(
-                              r => r.available_beds > 0 && r.room_id !== row.room_id
-                            );
-                            setTransferForm({
-                              target_room_id: freeRm ? freeRm.room_id : '',
-                              transfer_date: todayStr,
-                              reason: ''
-                            });
-                            setActiveModal('transfer');
-                          }}
-                        >
-                          <ArrowLeftRight size={13} /> Transfer
-                        </button>
-                        <button
-                          className="sl-act-btn checkout"
-                          onClick={() => {
-                            setFormError('');
-                            setSelectedAlloc(row);
-                            setCheckoutForm({
-                              checkout_date: todayStr,
-                              remarks: 'Standard checkout - keys returned'
-                            });
-                            setActiveModal('checkout');
-                          }}
-                        >
-                          <LogOut size={13} /> Checkout
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="sl-subtext"><History size={12} /> Closed</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredAllocations.length === 0 && (
-            <div style={{ padding: 36, textAlign: 'center', color: '#6e8077' }}>
-              {loading ? 'Loading from MySQL...' : 'No matching allocation records found.'}
-            </div>
-          )}
-        </div>
-      </section>
+          </section>
+        )}
+      </main>
 
       {activeModal === 'allocate' && (
         <div className="sl-modal-backdrop" onClick={() => setActiveModal(null)}>
@@ -524,7 +594,7 @@ export default function RoomAllocations() {
                 </select>
               </label>
               <label>
-                Target Room
+                Target Room (Rooms 1–20)
                 <select
                   required
                   value={allocForm.room_id}

@@ -1,20 +1,24 @@
 -- ============================================================================
 -- STAYLEDGER ADBMS - MODULE: ROOM ALLOCATIONS, TRANSFERS & CHECKOUT
 -- Member: N.L. Lekamge (36934)
--- Contributions: Transactions + Row Locking, Overlap Trigger, Occupancy View
 -- ============================================================================
 
 CREATE DATABASE IF NOT EXISTS stayledger_db;
 USE stayledger_db;
 
+DROP TABLE IF EXISTS room_allocations;
+DROP TABLE IF EXISTS rooms;
+DROP TABLE IF EXISTS floors;
+DROP TABLE IF EXISTS residents;
+
 -- 1. Floors Table
-CREATE TABLE IF NOT EXISTS floors (
+CREATE TABLE floors (
     floor_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     floor_name VARCHAR(50) NOT NULL UNIQUE
 );
 
--- 2. Rooms Table
-CREATE TABLE IF NOT EXISTS rooms (
+-- 2. Rooms Table (Rooms 1 to 20)
+CREATE TABLE rooms (
     room_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     room_number VARCHAR(10) NOT NULL UNIQUE,
     floor_id INT UNSIGNED NOT NULL,
@@ -24,8 +28,8 @@ CREATE TABLE IF NOT EXISTS rooms (
     CONSTRAINT chk_room_capacity CHECK (capacity > 0 AND capacity <= 6)
 );
 
--- 3. Residents Table
-CREATE TABLE IF NOT EXISTS residents (
+-- 3. Residents Table (60 capacity tracking)
+CREATE TABLE residents (
     resident_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     resident_code VARCHAR(20) NOT NULL UNIQUE,
     full_name VARCHAR(100) NOT NULL,
@@ -35,8 +39,8 @@ CREATE TABLE IF NOT EXISTS residents (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Room Allocations Table (Core Module Table)
-CREATE TABLE IF NOT EXISTS room_allocations (
+-- 4. Room Allocations Table
+CREATE TABLE room_allocations (
     allocation_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     allocation_code VARCHAR(20) NOT NULL UNIQUE,
     resident_id INT UNSIGNED NOT NULL,
@@ -56,10 +60,9 @@ CREATE TABLE IF NOT EXISTS room_allocations (
     INDEX idx_resident_overlap (resident_id, status, start_date, end_date)
 );
 
--- 5. Trigger: Prevent Overlapping Allocations (වැළැක්වීම) & Capacity Overflow
+-- 5. Trigger: Prevent Overlapping Allocations & Capacity Overflow
 DELIMITER $$
 
-DROP TRIGGER IF EXISTS trg_before_allocation_insert$$
 CREATE TRIGGER trg_before_allocation_insert
 BEFORE INSERT ON room_allocations
 FOR EACH ROW
@@ -102,6 +105,7 @@ DELIMITER ;
 CREATE OR REPLACE VIEW vw_room_occupancy AS
 SELECT 
     rm.room_id,
+    CAST(rm.room_number AS UNSIGNED) AS room_num_int,
     rm.room_number,
     fl.floor_id,
     fl.floor_name,
@@ -118,41 +122,39 @@ INNER JOIN floors fl ON rm.floor_id = fl.floor_id
 LEFT JOIN room_allocations ra 
     ON rm.room_id = ra.room_id AND ra.status = 'Active'
 GROUP BY rm.room_id, rm.room_number, fl.floor_id, fl.floor_name, rm.capacity
-ORDER BY rm.room_number ASC;
+ORDER BY room_num_int ASC;
 
--- 7. Seed Initial Database Records
-INSERT IGNORE INTO floors (floor_id, floor_name) VALUES
-(1, 'First floor'),
-(2, 'Second floor');
+-- 7. Seed Data: Floors (2), Rooms (1 to 20), Residents, Allocations
+INSERT INTO floors (floor_id, floor_name) VALUES (1, 'First floor'), (2, 'Second floor');
 
-INSERT IGNORE INTO rooms (room_id, room_number, floor_id, capacity) VALUES
-(1, '101', 1, 3),
-(2, '102', 1, 3),
-(3, '103', 1, 3),
-(4, '104', 1, 3),
-(5, '201', 2, 3),
-(6, '202', 2, 3),
-(7, '204', 2, 3),
-(8, '208', 2, 3);
+-- First Floor Rooms (1 to 10)
+INSERT INTO rooms (room_number, floor_id, capacity) VALUES 
+('1', 1, 3), ('2', 1, 3), ('3', 1, 3), ('4', 1, 3), ('5', 1, 3),
+('6', 1, 3), ('7', 1, 3), ('8', 1, 3), ('9', 1, 3), ('10', 1, 3);
 
-INSERT IGNORE INTO residents (resident_id, resident_code, full_name, email) VALUES
-(1, 'RES-001', 'Amaya Perera', 'amaya@example.com'),
-(2, 'RES-002', 'Dinithi Fernando', 'dinithi@example.com'),
-(3, 'RES-003', 'Nethmi Silva', 'nethmi@example.com'),
-(4, 'RES-004', 'Kavindi Jayasinghe', 'kavindi@example.com'),
-(5, 'RES-005', 'Tharushi Bandara', 'tharushi@example.com'),
-(6, 'RES-006', 'Hiruni Wijesinghe', 'hiruni@example.com'),
-(7, 'RES-007', 'Sanduni Rajapaksa', 'sanduni@example.com'),
-(8, 'RES-008', 'Piumi Gunasekara', 'piumi@example.com'),
-(9, 'RES-009', 'Chathuri Senanayake', 'chathuri@example.com'),
-(10, 'RES-010', 'Malsha Wickramasinghe', 'malsha@example.com');
+-- Second Floor Rooms (11 to 20)
+INSERT INTO rooms (room_number, floor_id, capacity) VALUES 
+('11', 2, 3), ('12', 2, 3), ('13', 2, 3), ('14', 2, 3), ('15', 2, 3),
+('16', 2, 3), ('17', 2, 3), ('18', 2, 3), ('19', 2, 3), ('20', 2, 3);
 
-INSERT IGNORE INTO room_allocations (allocation_id, allocation_code, resident_id, room_id, start_date, end_date, status, remarks) VALUES
-(101, 'ALLOC-101', 1, 1, '2026-11-02', NULL, 'Active', 'Initial semester intake'),
-(102, 'ALLOC-102', 5, 1, '2026-11-03', NULL, 'Active', 'Assigned near study hall'),
-(103, 'ALLOC-103', 6, 1, '2026-11-04', NULL, 'Active', 'Room 101 now at full capacity (3/3)'),
-(104, 'ALLOC-104', 2, 7, '2026-11-04', NULL, 'Active', 'Second floor quiet wing'),
-(105, 'ALLOC-105', 3, 2, '2026-10-01', '2026-11-05', 'Transferred', 'Transferred from Room 102 to 103'),
-(106, 'ALLOC-106', 3, 3, '2026-11-05', NULL, 'Active', 'Transferred from Room 102'),
-(107, 'ALLOC-107', 4, 6, '2026-11-08', NULL, 'Active', 'Standard bed allocation'),
-(108, 'ALLOC-108', 7, 8, '2026-09-15', '2026-11-01', 'Checked Out', 'Completed internship stay');
+INSERT INTO residents (resident_code, full_name, email) VALUES
+('RES-001', 'Amaya Perera', 'amaya@example.com'),
+('RES-002', 'Dinithi Fernando', 'dinithi@example.com'),
+('RES-003', 'Nethmi Silva', 'nethmi@example.com'),
+('RES-004', 'Kavindi Jayasinghe', 'kavindi@example.com'),
+('RES-005', 'Tharushi Bandara', 'tharushi@example.com'),
+('RES-006', 'Hiruni Wijesinghe', 'hiruni@example.com'),
+('RES-007', 'Sanduni Rajapaksa', 'sanduni@example.com'),
+('RES-008', 'Piumi Gunasekara', 'piumi@example.com'),
+('RES-009', 'Chathuri Senanayake', 'chathuri@example.com'),
+('RES-010', 'Malsha Wickramasinghe', 'malsha@example.com');
+
+INSERT INTO room_allocations (allocation_code, resident_id, room_id, start_date, end_date, status, remarks) VALUES
+('ALLOC-101', 1, 1, '2026-11-02', NULL, 'Active', 'Initial semester intake'),
+('ALLOC-102', 5, 1, '2026-11-03', NULL, 'Active', 'Assigned near study hall'),
+('ALLOC-103', 6, 2, '2026-11-04', NULL, 'Active', 'Standard bed allocation'),
+('ALLOC-104', 2, 11, '2026-11-04', NULL, 'Active', 'Second floor quiet wing'),
+('ALLOC-105', 3, 3, '2026-10-01', '2026-11-05', 'Transferred', 'Transferred to Room 4'),
+('ALLOC-106', 3, 4, '2026-11-05', NULL, 'Active', 'Transferred from Room 3'),
+('ALLOC-107', 4, 15, '2026-11-08', NULL, 'Active', 'Standard bed allocation'),
+('ALLOC-108', 7, 18, '2026-09-15', '2026-11-01', 'Checked Out', 'Completed internship stay');

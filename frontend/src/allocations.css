@@ -31,10 +31,179 @@ body {
   line-height: 1.5;
 }
 
-.sl-alloc-page {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 32px 24px 60px;
+.sl-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sl-sidebar {
+  width: 252px;
+  position: fixed;
+  inset: 0 auto 0 0;
+  background: rgba(255, 255, 255, .95);
+  border-right: 1px solid var(--sl-border);
+  display: flex;
+  flex-direction: column;
+  padding: 30px 20px 0;
+  z-index: 40;
+}
+
+.sl-brand {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 25px;
+  letter-spacing: -1px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 10px;
+  color: var(--sl-charcoal);
+  text-decoration: none;
+}
+
+.sl-brand-icon {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 37px;
+  border-radius: 12px;
+  background: var(--sl-green);
+  color: #fff;
+}
+
+.sl-brand-dot {
+  color: var(--sl-sage);
+  margin-left: -8px;
+}
+
+.sl-hostel-switch {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--sl-border);
+  border-radius: 10px;
+  padding: 12px 9px;
+  margin: 30px 0 28px;
+}
+
+.sl-hostel-avatar {
+  width: 31px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: #f1eee5;
+  border-radius: 7px;
+  font-family: serif;
+  font-size: 20px;
+  color: #8a7955;
+}
+
+.sl-hostel-switch strong {
+  font-size: 11px;
+  display: block;
+  color: var(--sl-charcoal);
+}
+
+.sl-hostel-switch small {
+  font-size: 10px;
+  color: var(--sl-muted);
+  display: block;
+  margin-top: 4px;
+}
+
+.sl-nav-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.7px;
+  color: #99a49e;
+  padding: 0 13px;
+  margin-bottom: 12px;
+}
+
+.sl-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sl-nav-item {
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #75827b;
+  width: 100%;
+}
+
+.sl-nav-item.active {
+  background: #e9f3ed;
+  color: var(--sl-green);
+  font-weight: 650;
+}
+
+.sl-nav-item small {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 2px 6px;
+  background: #f1f3f1;
+  border-radius: 4px;
+}
+
+.sl-nav-item i {
+  height: 5px;
+  width: 5px;
+  border-radius: 50%;
+  background: var(--sl-green);
+  margin-left: auto;
+}
+
+.sl-sidebar-bottom {
+  margin-top: auto;
+  padding: 20px 0;
+  border-top: 1px solid var(--sl-border);
+}
+
+.sl-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px;
+}
+
+.sl-avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #eee8df;
+  color: #8e785d;
+  font-weight: 700;
+  font-size: 11px;
+  width: 35px;
+  height: 35px;
+}
+
+.sl-profile strong {
+  display: block;
+  font-size: 11px;
+  color: var(--sl-charcoal);
+}
+
+.sl-profile small {
+  display: block;
+  font-size: 10px;
+  color: var(--sl-muted);
+}
+
+.sl-workspace {
+  margin-left: 252px;
+  width: calc(100% - 252px);
+  padding: 32px 38px 60px;
+  max-width: 1590px;
 }
 
 .sl-alloc-header {
@@ -163,6 +332,34 @@ body {
   font-size: 11px;
   color: var(--sl-muted);
   margin-top: 6px;
+}
+
+.sl-module-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--sl-border);
+  padding-bottom: 14px;
+}
+
+.sl-mod-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--sl-surface);
+  border: 1px solid var(--sl-border);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sl-muted);
+  cursor: pointer;
+}
+
+.sl-mod-tab.active {
+  background: var(--sl-green);
+  color: #fff;
+  border-color: var(--sl-green);
 }
 
 .sl-panel {
@@ -519,20 +716,4 @@ body {
   font-weight: 500;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   z-index: 200;
-}
-
-@media (max-width: 1024px) {
-  .sl-kpi-grid, .sl-room-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .sl-kpi-grid, .sl-room-grid {
-    grid-template-columns: 1fr;
-  }
-  .sl-alloc-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
 }
