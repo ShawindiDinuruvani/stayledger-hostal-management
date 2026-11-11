@@ -30,7 +30,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 if ($method === 'GET' && $uri === '/api/allocations/dashboard') {
-    $rooms = $pdo->query('SELECT * FROM vw_room_occupancy')->fetchAll();
+    $rooms = $pdo->query('SELECT * FROM vw_room_occupancy ORDER BY room_num_int ASC')->fetchAll();
 
     $allocations = $pdo->query("
         SELECT 
@@ -77,7 +77,6 @@ if ($method === 'GET' && $uri === '/api/allocations/dashboard') {
 if ($method === 'POST' && $uri === '/api/allocations') {
     try {
         $pdo->beginTransaction();
-
         $stmtRoom = $pdo->prepare('SELECT * FROM rooms WHERE room_id = ? FOR UPDATE');
         $stmtRoom->execute([$input['room_id']]);
         $room = $stmtRoom->fetch();
@@ -122,7 +121,6 @@ if ($method === 'POST' && preg_match('#^/api/allocations/(\d+)/transfer$#', $uri
     $allocId = (int) $m[1];
     try {
         $pdo->beginTransaction();
-
         $stmtCur = $pdo->prepare("SELECT * FROM room_allocations WHERE allocation_id = ? AND status = 'Active' FOR UPDATE");
         $stmtCur->execute([$allocId]);
         $currentAlloc = $stmtCur->fetch();
@@ -130,10 +128,6 @@ if ($method === 'POST' && preg_match('#^/api/allocations/(\d+)/transfer$#', $uri
         if (!$currentAlloc) throw new Exception('Active allocation not found.');
 
         $targetRoomId = (int) $input['target_room_id'];
-        if ((int) $currentAlloc['room_id'] === $targetRoomId) {
-            throw new Exception('Destination room must be different from current room.');
-        }
-
         $stmtTarget = $pdo->prepare('SELECT * FROM rooms WHERE room_id = ? FOR UPDATE');
         $stmtTarget->execute([$targetRoomId]);
         $targetRoom = $stmtTarget->fetch();
@@ -148,29 +142,12 @@ if ($method === 'POST' && preg_match('#^/api/allocations/(\d+)/transfer$#', $uri
             throw new Exception("Room {$targetRoom['room_number']} has no available beds.");
         }
 
-        $stmtUpd = $pdo->prepare("
-            UPDATE room_allocations 
-            SET end_date = ?, status = 'Transferred', remarks = ?
-            WHERE allocation_id = ?
-        ");
-        $stmtUpd->execute([
-            $input['transfer_date'],
-            "Transferred to Room {$targetRoom['room_number']}: {$input['reason']}",
-            $allocId
-        ]);
+        $stmtUpd = $pdo->prepare("UPDATE room_allocations SET end_date = ?, status = 'Transferred', remarks = ? WHERE allocation_id = ?");
+        $stmtUpd->execute([$input['transfer_date'], "Transferred to Room {$targetRoom['room_number']}: {$input['reason']}", $allocId]);
 
         $nextId = ((int) $pdo->query('SELECT COALESCE(MAX(allocation_id), 100) FROM room_allocations')->fetchColumn()) + 1;
-        $stmtIns = $pdo->prepare("
-            INSERT INTO room_allocations (allocation_code, resident_id, room_id, start_date, end_date, status, remarks)
-            VALUES (?, ?, ?, ?, NULL, 'Active', ?)
-        ");
-        $stmtIns->execute([
-            'ALLOC-' . $nextId,
-            $currentAlloc['resident_id'],
-            $targetRoomId,
-            $input['transfer_date'],
-            "Transferred from Room {$oldRoom['room_number']}: {$input['reason']}"
-        ]);
+        $stmtIns = $pdo->prepare("INSERT INTO room_allocations (allocation_code, resident_id, room_id, start_date, end_date, status, remarks) VALUES (?, ?, ?, ?, NULL, 'Active', ?)");
+        $stmtIns->execute(['ALLOC-' . $nextId, $currentAlloc['resident_id'], $targetRoomId, $input['transfer_date'], "Transferred from Room {$oldRoom['room_number']}: {$input['reason']}"]);
 
         $pdo->commit();
         echo json_encode(['message' => "Atomic Transfer committed: Moved from Room {$oldRoom['room_number']} to Room {$targetRoom['room_number']}."]);
@@ -186,26 +163,17 @@ if ($method === 'POST' && preg_match('#^/api/allocations/(\d+)/checkout$#', $uri
     $allocId = (int) $m[1];
     try {
         $pdo->beginTransaction();
-
         $stmtCur = $pdo->prepare("SELECT * FROM room_allocations WHERE allocation_id = ? AND status = 'Active' FOR UPDATE");
         $stmtCur->execute([$allocId]);
         $alloc = $stmtCur->fetch();
 
         if (!$alloc) throw new Exception('Active allocation not found.');
 
-        if ($input['checkout_date'] < $alloc['start_date']) {
-            throw new Exception('Checkout date cannot be earlier than check-in start date.');
-        }
-
-        $stmtUpd = $pdo->prepare("
-            UPDATE room_allocations 
-            SET end_date = ?, status = 'Checked Out', remarks = ?
-            WHERE allocation_id = ?
-        ");
+        $stmtUpd = $pdo->prepare("UPDATE room_allocations SET end_date = ?, status = 'Checked Out', remarks = ? WHERE allocation_id = ?");
         $stmtUpd->execute([$input['checkout_date'], $input['remarks'], $allocId]);
 
         $pdo->commit();
-        echo json_encode(['message' => 'Checkout committed in MySQL: Bed released and vw_room_occupancy updated.']);
+        echo json_encode(['message' => 'Checkout committed in MySQL: Bed released.']);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         http_response_code(422);
