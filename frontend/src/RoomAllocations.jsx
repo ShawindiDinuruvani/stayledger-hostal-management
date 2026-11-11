@@ -231,13 +231,27 @@ export default function RoomAllocations() {
       <Sidebar />
 
       <main className="sl-workspace">
+        <div className="sl-topbar">
+          <div className="sl-breadcrumb">
+            Workspace / <span>Allocations & Rooms</span>
+          </div>
+          <div className="sl-topbar-right">
+            <span>November 2026</span>
+            <div className="sl-user-pill">NL</div>
+          </div>
+        </div>
+
+        <div className="sl-hero-banner">
+          <div>
+            <h1>Efficient spaces make calm hostels.</h1>
+            <p>Manage room allocations, seamless transfers, and smooth checkouts across all 20 rooms in real-time.</p>
+          </div>
+        </div>
+
         <header className="sl-alloc-header">
           <div>
-            <span className="sl-brand-pill">
-              <Leaf size={13} /> StayLedger · Emarald Girls Hostel
-            </span>
-            <h1>Room Allocations, Transfers & Checkout</h1>
-            <p>Module: N.L. Lekamge (36934) — MySQL Transactions, Row Locking & Occupancy View</p>
+            <h2>Room Allocations & Occupancy</h2>
+            <p>Live overview of bed availability and active resident assignments.</p>
           </div>
           <div className="sl-header-actions">
             <button className="sl-btn sl-btn-secondary" onClick={exportCSV}>
@@ -263,7 +277,7 @@ export default function RoomAllocations() {
           <div className="sl-kpi-card">
             <div className="sl-kpi-top">
               <span className="sl-kpi-icon"><BedDouble size={20} /></span>
-              <span className="sl-badge">vw_room_occupancy</span>
+              <span className="sl-badge">Occupancy View</span>
             </div>
             <span className="sl-kpi-label">Occupied Beds</span>
             <strong>{metrics.occupiedBeds} / {metrics.totalBeds}</strong>
@@ -273,7 +287,7 @@ export default function RoomAllocations() {
           <div className="sl-kpi-card">
             <div className="sl-kpi-top">
               <span className="sl-kpi-icon"><Building2 size={20} /></span>
-              <span className="sl-badge">FOR UPDATE Lock</span>
+              <span className="sl-badge">Capacity Status</span>
             </div>
             <span className="sl-kpi-label">Available Rooms</span>
             <strong>{rooms.length - metrics.fullRooms} / {rooms.length}</strong>
@@ -283,17 +297,17 @@ export default function RoomAllocations() {
           <div className="sl-kpi-card">
             <div className="sl-kpi-top">
               <span className="sl-kpi-icon"><ArrowLeftRight size={20} /></span>
-              <span className="sl-badge amber">ACID Transaction</span>
+              <span className="sl-badge amber">Swaps</span>
             </div>
             <span className="sl-kpi-label">Room Transfers</span>
             <strong>{metrics.transfersCount}</strong>
-            <small>Completed atomic room swaps</small>
+            <small>Completed room transfers</small>
           </div>
 
           <div className="sl-kpi-card">
             <div className="sl-kpi-top">
               <span className="sl-kpi-icon"><Lock size={20} /></span>
-              <span className="sl-badge">Trigger Guard</span>
+              <span className="sl-badge">Queue</span>
             </div>
             <span className="sl-kpi-label">Unallocated Residents</span>
             <strong>{metrics.unallocatedCount}</strong>
@@ -326,7 +340,7 @@ export default function RoomAllocations() {
           <section className="sl-panel">
             <div className="sl-panel-header">
               <div>
-                <h2>Live Room Capacity (`vw_room_occupancy`)</h2>
+                <h2>Live Room Capacity</h2>
                 <p>Showing Rooms 01 to 20 across First and Second floor</p>
               </div>
               <div className="sl-tabs">
