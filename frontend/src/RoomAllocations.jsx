@@ -236,7 +236,6 @@ export default function RoomAllocations() {
             Workspace / <span>Allocations & Rooms</span>
           </div>
           <div className="sl-topbar-right">
-            <span>November 2026</span>
             <div className="sl-user-pill">NL</div>
           </div>
         </div>
