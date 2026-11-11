@@ -4,17 +4,17 @@
   --sl-green: #0f5338;
   --sl-green-hover: #0a3d28;
   --sl-green-light: #eaf4ee;
-  --sl-charcoal: #1c3329;
+  --sl-charcoal: #162c23;
   --sl-sage: #84a98c;
-  --sl-bg: #f9fbf9;
+  --sl-bg: #f8faf8;
   --sl-surface: #ffffff;
-  --sl-border: #e6ece8;
-  --sl-text: #233e35;
-  --sl-muted: #6e8077;
-  --sl-amber-bg: #fdf4e7;
-  --sl-amber-text: #b4690e;
-  --sl-danger-bg: #fdf0ed;
-  --sl-danger-text: #b4321e;
+  --sl-border: #e2eae5;
+  --sl-text: #1f352c;
+  --sl-muted: #64756c;
+  --sl-amber-bg: #fef7ed;
+  --sl-amber-text: #b45309;
+  --sl-danger-bg: #fef2f2;
+  --sl-danger-text: #b91c1c;
 }
 
 * {
@@ -29,15 +29,15 @@ body {
   color: var(--sl-text);
   font-size: 13.5px;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Master Layout */
 .sl-layout {
   display: flex;
   min-height: 100vh;
 }
 
-/* Master Sidebar */
+/* Sidebar refinement */
 .sl-sidebar {
   width: 256px;
   position: fixed;
@@ -67,6 +67,7 @@ body {
   border-radius: 9px;
   background: var(--sl-green);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(15, 83, 56, 0.2);
 }
 
 .sl-brand-text {
@@ -89,7 +90,7 @@ body {
   border-radius: 10px;
   padding: 10px 12px;
   margin-bottom: 24px;
-  background: #fafcfb;
+  background: #fbfcfb;
 }
 
 .sl-hostel-avatar {
@@ -152,12 +153,12 @@ body {
 }
 
 .sl-nav-item:hover {
-  background: #f3f7f4;
+  background: #f2f7f4;
   color: var(--sl-charcoal);
 }
 
 .sl-nav-item.active {
-  background: #e9f3ed;
+  background: #e6f2eb;
   color: var(--sl-green);
   font-weight: 650;
 }
@@ -166,12 +167,12 @@ body {
   margin-left: auto;
   font-size: 10.5px;
   padding: 1px 6px;
-  background: #e4ece7;
+  background: #e2eae5;
   border-radius: 5px;
   color: var(--sl-muted);
 }
 
-/* Workspace Content Area */
+/* Workspace */
 .sl-workspace {
   margin-left: 256px;
   width: calc(100% - 256px);
@@ -179,7 +180,6 @@ body {
   max-width: 1560px;
 }
 
-/* Top Navigation Bar inside Workspace */
 .sl-topbar {
   display: flex;
   justify-content: space-between;
@@ -210,29 +210,28 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #e4ece7;
+  background: #e2eae5;
   color: var(--sl-green);
   font-weight: 700;
   font-size: 12px;
   display: grid;
   place-items: center;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
 }
 
-/* Hero Dark Green Banner (matching screenshot style) */
+/* Hero Banner */
 .sl-hero-banner {
-  background: linear-gradient(135deg, #0f5338 0%, #164e37 100%);
+  background: linear-gradient(135deg, #0f5338 0%, #134530 100%);
   border-radius: 16px;
-  padding: 36px 40px;
+  padding: 32px 40px;
   color: #fff;
   margin-bottom: 28px;
-  position: relative;
-  overflow: hidden;
   box-shadow: 0 10px 30px rgba(15, 83, 56, 0.15);
 }
 
 .sl-hero-banner h1 {
   font-family: 'Manrope', sans-serif;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.5px;
   margin-bottom: 6px;
@@ -284,15 +283,18 @@ body {
   cursor: pointer;
   border: 1px solid transparent;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 
 .sl-btn-primary {
   background: var(--sl-green);
   color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 83, 56, 0.2);
 }
 
 .sl-btn-primary:hover {
   background: var(--sl-green-hover);
+  transform: translateY(-1px);
 }
 
 .sl-btn-secondary {
@@ -303,9 +305,10 @@ body {
 
 .sl-btn-secondary:hover {
   background: var(--sl-green-light);
+  border-color: var(--sl-sage);
 }
 
-/* KPI Summary Cards */
+/* KPI Cards */
 .sl-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -318,7 +321,13 @@ body {
   border: 1px solid var(--sl-border);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.015);
+  transition: all 0.2s ease;
+}
+
+.sl-kpi-card:hover {
+  border-color: #cbdad1;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
 }
 
 .sl-kpi-top {
@@ -358,7 +367,7 @@ body {
   margin-top: 6px;
 }
 
-/* Module Sub-Navigation Tabs */
+/* Module Sub-Tabs */
 .sl-module-tabs {
   display: flex;
   gap: 10px;
@@ -379,12 +388,19 @@ body {
   font-weight: 600;
   color: var(--sl-muted);
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sl-mod-tab:hover {
+  background: #f1f6f3;
+  color: var(--sl-charcoal);
 }
 
 .sl-mod-tab.active {
   background: var(--sl-green);
   color: #fff;
   border-color: var(--sl-green);
+  box-shadow: 0 4px 12px rgba(15, 83, 56, 0.2);
 }
 
 /* Panels */
@@ -394,7 +410,7 @@ body {
   border-radius: 12px;
   margin-bottom: 24px;
   overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.015);
 }
 
 .sl-panel-header {
@@ -426,6 +442,7 @@ body {
   background: var(--sl-bg);
   padding: 4px;
   border-radius: 8px;
+  border: 1px solid var(--sl-border);
 }
 
 .sl-tab {
@@ -445,7 +462,7 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-/* Room Grid (Rooms 01 to 20) */
+/* Room Grid Cards (01 to 20) */
 .sl-room-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -464,12 +481,15 @@ body {
 
 .sl-room-card:hover {
   border-color: var(--sl-sage);
+  background: #ffffff;
   transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.04);
 }
 
 .sl-room-card.selected {
   border-color: var(--sl-green);
   background: var(--sl-green-light);
+  box-shadow: 0 0 0 2px rgba(15, 83, 56, 0.15);
 }
 
 .sl-room-top {
@@ -499,7 +519,7 @@ body {
 .sl-bed-bar {
   height: 8px;
   border-radius: 4px;
-  background: #e3ebe6;
+  background: #e2eae5;
 }
 
 .sl-bed-bar.occupied {
@@ -523,6 +543,7 @@ body {
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .sl-mini-btn:hover {
@@ -548,8 +569,8 @@ body {
 }
 
 .sl-badge.neutral {
-  background: #eef1ef;
-  color: #5c6b63;
+  background: #edf2f0;
+  color: #4a5c53;
 }
 
 /* Controls & Tables */
@@ -575,6 +596,7 @@ body {
   outline: none;
   font-size: 13px;
   width: 210px;
+  background: transparent;
 }
 
 .sl-table-wrap {
@@ -605,16 +627,17 @@ body {
 }
 
 .sl-table tbody tr:hover {
-  background: #fafcfa;
+  background: #fbfefc;
 }
 
 .sl-code {
-  background: #eff4f1;
+  background: #edf4f0;
   padding: 3px 8px;
   border-radius: 5px;
   font-family: monospace;
   font-size: 12px;
   color: var(--sl-charcoal);
+  font-weight: 600;
 }
 
 .sl-subtext {
@@ -638,6 +661,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
+  transition: all 0.15s ease;
 }
 
 .sl-act-btn.transfer {
@@ -660,17 +684,18 @@ body {
   color: #fff;
 }
 
-/* Modals & Toast */
+/* Modals */
 .sl-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(18, 43, 33, 0.45);
+  background: rgba(15, 35, 27, 0.5);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
   z-index: 100;
+  animation: fadeIn 0.15s ease;
 }
 
 .sl-modal {
@@ -678,21 +703,23 @@ body {
   width: 100%;
   max-width: 460px;
   border-radius: 14px;
-  padding: 26px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  padding: 28px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: slideUp 0.2s ease;
 }
 
 .sl-modal-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .sl-modal-top h3 {
   font-family: 'Manrope', sans-serif;
-  font-size: 20px;
+  font-size: 18px;
   color: var(--sl-charcoal);
+  font-weight: 700;
 }
 
 .sl-close-btn {
@@ -700,13 +727,20 @@ body {
   border: 0;
   cursor: pointer;
   color: var(--sl-muted);
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.sl-close-btn:hover {
+  background: #f1f5f3;
+  color: var(--sl-charcoal);
 }
 
 .sl-form label {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   color: var(--sl-charcoal);
 }
 
@@ -714,11 +748,21 @@ body {
 .sl-form select {
   width: 100%;
   margin-top: 6px;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--sl-border);
   border-radius: 8px;
   font-size: 13px;
   font-family: inherit;
+  background: #fbfcfb;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.sl-form input:focus,
+.sl-form select:focus {
+  border-color: var(--sl-green);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 83, 56, 0.1);
 }
 
 .sl-alert {
@@ -731,20 +775,32 @@ body {
   border-radius: 8px;
   font-size: 12px;
   margin-bottom: 16px;
+  border: 1px solid #fecaca;
 }
 
 .sl-toast {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: var(--sl-green);
+  background: var(--sl-charcoal);
   color: #fff;
   padding: 12px 20px;
   border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: 500;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   z-index: 200;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
