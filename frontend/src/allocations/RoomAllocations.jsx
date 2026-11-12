@@ -12,12 +12,20 @@ import {
   Lock,
   X,
   RefreshCw,
-  Leaf,
   Download
 } from 'lucide-react';
-import Sidebar from './Sidebar.jsx';
+import Sidebar from '../Sidebar.jsx';
+import './allocations.css';
 
 const API_BASE = 'http://localhost:8000/api';
+
+const getInitials = (name = '') =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0].toUpperCase())
+    .join('');
 
 export default function RoomAllocations() {
   const [rooms, setRooms] = useState([]);
@@ -38,7 +46,7 @@ export default function RoomAllocations() {
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA');
 
   const [allocForm, setAllocForm] = useState({
     resident_id: '',
@@ -108,13 +116,14 @@ export default function RoomAllocations() {
       if (activeTab === 'active' && a.status !== 'Active') return false;
       if (activeTab === 'history' && a.status === 'Active') return false;
 
-      const matchesStatus = statusFilter === 'All' || a.status === statusFilter;
-      const matchesRoom = !selectedRoomFilter || a.room === selectedRoomFilter;
+      const matchesStatus =
+        activeTab !== 'history' || statusFilter === 'All' || a.status === statusFilter;
+      const matchesRoom = !selectedRoomFilter || String(a.room) === String(selectedRoomFilter);
       const q = search.toLowerCase();
       const matchesSearch =
         (a.residentName || '').toLowerCase().includes(q) ||
         (a.residentCode || '').toLowerCase().includes(q) ||
-        (a.room || '').toLowerCase().includes(q) ||
+        String(a.room || '').toLowerCase().includes(q) ||
         (a.allocId || '').toLowerCase().includes(q) ||
         (a.remarks || '').toLowerCase().includes(q);
       return matchesStatus && matchesRoom && matchesSearch;
@@ -192,7 +201,7 @@ export default function RoomAllocations() {
   const openAllocateModal = (preselectedRoomId = '') => {
     setFormError('');
     const freeRes = residents.find(r => !Number(r.is_allocated))?.resident_id || '';
-    const freeRoom = preselectedRoomId || rooms.find(r => r.available_beds > 0)?.room_id || '';
+    const freeRoom = preselectedRoomId || rooms.find(r => Number(r.available_beds) > 0)?.room_id || '';
     setAllocForm({
       resident_id: freeRes,
       room_id: freeRoom,
@@ -256,8 +265,8 @@ export default function RoomAllocations() {
             <button className="sl-btn sl-btn-secondary" onClick={exportCSV}>
               <Download size={15} /> Export CSV
             </button>
-            <button className="sl-btn sl-btn-secondary" onClick={fetchDashboardData}>
-              <RefreshCw size={15} /> Refresh DB
+            <button className="sl-btn sl-btn-secondary" onClick={fetchDashboardData} disabled={loading}>
+              <RefreshCw size={15} className={loading ? 'sl-spin' : ''} /> {loading ? 'Syncing...' : 'Refresh DB'}
             </button>
             <button className="sl-btn sl-btn-primary" onClick={() => openAllocateModal()}>
               <Plus size={16} /> Allocate Room
@@ -329,7 +338,10 @@ export default function RoomAllocations() {
           </button>
           <button
             className={'sl-mod-tab ' + (activeTab === 'history' ? 'active' : '')}
-            onClick={() => setActiveTab('history')}
+            onClick={() => {
+              setStatusFilter('All');
+              setActiveTab('history');
+            }}
           >
             <History size={16} /> Allocation History & Checkouts
           </button>
@@ -430,6 +442,20 @@ export default function RoomAllocations() {
               </div>
 
               <div className="sl-controls">
+                {activeTab === 'history' && (
+                  <div className="sl-tabs">
+                    {['All', 'Transferred', 'Checked Out'].map(st => (
+                      <button
+                        key={st}
+                        className={'sl-tab ' + (statusFilter === st ? 'active' : '')}
+                        onClick={() => setStatusFilter(st)}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="sl-search">
                   <Search size={15} />
                   <input
@@ -460,8 +486,13 @@ export default function RoomAllocations() {
                     <tr key={row.allocation_id}>
                       <td><span className="sl-code">{row.allocId}</span></td>
                       <td>
-                        <strong>{row.residentName}</strong>
-                        <span className="sl-subtext">{row.residentCode}</span>
+                        <div className="sl-resident-cell">
+                          <span className="sl-res-avatar">{getInitials(row.residentName)}</span>
+                          <div>
+                            <strong>{row.residentName}</strong>
+                            <span className="sl-subtext">{row.residentCode}</span>
+                          </div>
+                        </div>
                       </td>
                       <td>
                         <strong>Room {row.room}</strong>
@@ -493,7 +524,7 @@ export default function RoomAllocations() {
                                 setFormError('');
                                 setSelectedAlloc(row);
                                 const freeRm = rooms.find(
-                                  r => r.available_beds > 0 && r.room_id !== row.room_id
+                                  r => Number(r.available_beds) > 0 && Number(r.room_id) !== Number(row.room_id)
                                 );
                                 setTransferForm({
                                   target_room_id: freeRm ? freeRm.room_id : '',
@@ -571,7 +602,7 @@ export default function RoomAllocations() {
                 >
                   <option value="" disabled>-- Choose room --</option>
                   {rooms.map(rm => (
-                    <option key={rm.room_id} value={rm.room_id} disabled={rm.available_beds <= 0}>
+                    <option key={rm.room_id} value={rm.room_id} disabled={Number(rm.available_beds) <= 0}>
                       Room {rm.room_number} ({rm.floor_name}) — {rm.occupied_beds}/{rm.capacity} Occupied
                     </option>
                   ))}
@@ -621,9 +652,9 @@ export default function RoomAllocations() {
                 >
                   <option value="" disabled>-- Choose destination room --</option>
                   {rooms
-                    .filter(r => r.room_id !== selectedAlloc.room_id)
+                    .filter(r => Number(r.room_id) !== Number(selectedAlloc.room_id))
                     .map(rm => (
-                      <option key={rm.room_id} value={rm.room_id} disabled={rm.available_beds <= 0}>
+                      <option key={rm.room_id} value={rm.room_id} disabled={Number(rm.available_beds) <= 0}>
                         Room {rm.room_number} ({rm.floor_name}) — {rm.available_beds} bed(s) free
                       </option>
                     ))}
