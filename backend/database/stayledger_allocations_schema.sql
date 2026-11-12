@@ -9,7 +9,6 @@ USE stayledger_db;
 DROP TABLE IF EXISTS room_allocations;
 DROP TABLE IF EXISTS rooms;
 DROP TABLE IF EXISTS floors;
-DROP TABLE IF EXISTS residents;
 
 -- 1. Floors Table
 CREATE TABLE floors (
@@ -28,8 +27,8 @@ CREATE TABLE rooms (
     CONSTRAINT chk_room_capacity CHECK (capacity > 0 AND capacity <= 6)
 );
 
--- 3. Residents Table (60 capacity tracking)
-CREATE TABLE residents (
+-- 3. Residents Table (Uses existing residents from stayledger_db without wiping them)
+CREATE TABLE IF NOT EXISTS residents (
     resident_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     resident_code VARCHAR(20) NOT NULL UNIQUE,
     full_name VARCHAR(100) NOT NULL,
@@ -61,6 +60,7 @@ CREATE TABLE room_allocations (
 );
 
 -- 5. Trigger: Prevent Overlapping Allocations & Capacity Overflow
+DROP TRIGGER IF EXISTS trg_before_allocation_insert;
 DELIMITER $$
 
 CREATE TRIGGER trg_before_allocation_insert
@@ -124,7 +124,7 @@ LEFT JOIN room_allocations ra
 GROUP BY rm.room_id, rm.room_number, fl.floor_id, fl.floor_name, rm.capacity
 ORDER BY room_num_int ASC;
 
--- 7. Seed Data: Floors (2), Rooms (1 to 20), Residents, Allocations
+-- 7. Structural Setup Only: Floors (2) & Hostel Rooms (1 to 20)
 INSERT INTO floors (floor_id, floor_name) VALUES (1, 'First floor'), (2, 'Second floor');
 
 -- First Floor Rooms (1 to 10)
@@ -136,25 +136,3 @@ INSERT INTO rooms (room_number, floor_id, capacity) VALUES
 INSERT INTO rooms (room_number, floor_id, capacity) VALUES 
 ('11', 2, 3), ('12', 2, 3), ('13', 2, 3), ('14', 2, 3), ('15', 2, 3),
 ('16', 2, 3), ('17', 2, 3), ('18', 2, 3), ('19', 2, 3), ('20', 2, 3);
-
-INSERT INTO residents (resident_code, full_name, email) VALUES
-('RES-001', 'Amaya Perera', 'amaya@example.com'),
-('RES-002', 'Dinithi Fernando', 'dinithi@example.com'),
-('RES-003', 'Nethmi Silva', 'nethmi@example.com'),
-('RES-004', 'Kavindi Jayasinghe', 'kavindi@example.com'),
-('RES-005', 'Tharushi Bandara', 'tharushi@example.com'),
-('RES-006', 'Hiruni Wijesinghe', 'hiruni@example.com'),
-('RES-007', 'Sanduni Rajapaksa', 'sanduni@example.com'),
-('RES-008', 'Piumi Gunasekara', 'piumi@example.com'),
-('RES-009', 'Chathuri Senanayake', 'chathuri@example.com'),
-('RES-010', 'Malsha Wickramasinghe', 'malsha@example.com');
-
-INSERT INTO room_allocations (allocation_code, resident_id, room_id, start_date, end_date, status, remarks) VALUES
-('ALLOC-101', 1, 1, '2026-11-02', NULL, 'Active', 'Initial semester intake'),
-('ALLOC-102', 5, 1, '2026-11-03', NULL, 'Active', 'Assigned near study hall'),
-('ALLOC-103', 6, 2, '2026-11-04', NULL, 'Active', 'Standard bed allocation'),
-('ALLOC-104', 2, 11, '2026-11-04', NULL, 'Active', 'Second floor quiet wing'),
-('ALLOC-105', 3, 3, '2026-10-01', '2026-11-05', 'Transferred', 'Transferred to Room 4'),
-('ALLOC-106', 3, 4, '2026-11-05', NULL, 'Active', 'Transferred from Room 3'),
-('ALLOC-107', 4, 15, '2026-11-08', NULL, 'Active', 'Standard bed allocation'),
-('ALLOC-108', 7, 18, '2026-09-15', '2026-11-01', 'Checked Out', 'Completed internship stay');

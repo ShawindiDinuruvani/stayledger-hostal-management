@@ -4,14 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Exception;
 
 class RoomAllocationController extends Controller
 {
     /**
      * GET /api/allocations/dashboard
-     * Returns live data from MySQL tables & vw_room_occupancy view (No hardcoded data!)
+     * Returns live data from MySQL tables & vw_room_occupancy view
      */
     public function index()
     {
@@ -40,18 +39,17 @@ class RoomAllocationController extends Controller
             ->orderByDesc('ra.allocation_id')
             ->get();
 
-        // 3. Query Residents with a LEFT JOIN to see who is currently unallocated
+        // 3. Query Residents safely with EXISTS subquery (prevents duplicate rows)
         $residents = DB::table('residents as r')
-            ->leftJoin('room_allocations as ra', function ($join) {
-                $join->on('r.resident_id', '=', 'ra.resident_id')
-                     ->where('ra.status', '=', 'Active');
-            })
             ->where('r.status', 'ACTIVE')
             ->select(
                 'r.resident_id',
                 'r.resident_code',
                 'r.full_name',
-                DB::raw('CASE WHEN ra.allocation_id IS NOT NULL THEN 1 ELSE 0 END AS is_allocated')
+                DB::raw('EXISTS(
+                    SELECT 1 FROM room_allocations ra 
+                    WHERE ra.resident_id = r.resident_id AND ra.status = "Active"
+                ) AS is_allocated')
             )
             ->orderBy('r.full_name')
             ->get();
@@ -84,6 +82,12 @@ class RoomAllocationController extends Controller
                     ->lockForUpdate()
                     ->first();
 
+                if ($room->status === 'MAINTENANCE') {
+                    return response()->json([
+                        'message' => "Room {$room->room_number} is currently under maintenance."
+                    ], 422);
+                }
+
                 // 2. Lock and count current active allocations in this room
                 $occupiedCount = DB::table('room_allocations')
                     ->where('room_id', $validated['room_id'])
@@ -97,9 +101,9 @@ class RoomAllocationController extends Controller
                     ], 422);
                 }
 
-                // 3. Generate unique code & insert (MySQL Trigger also validates overlap)
-                $nextId = (DB::table('room_allocations')->max('allocation_id') ?? 100) + 1;
-                $code = 'ALLOC-' . $nextId;
+                // 3. Generate unique sequential code (ALLOC-101, ALLOC-102, ...)
+                $maxId = DB::table('room_allocations')->lockForUpdate()->max('allocation_id') ?? 0;
+                $code  = 'ALLOC-' . (100 + $maxId + 1);
 
                 DB::table('room_allocations')->insert([
                     'allocation_code' => $code,
@@ -108,7 +112,7 @@ class RoomAllocationController extends Controller
                     'start_date'      => $validated['start_date'],
                     'end_date'        => null,
                     'status'          => 'Active',
-                    'remarks'         => $validated['remarks'] ?? 'Standard bed allocation',
+                    'remarks'         => !empty($validated['remarks']) ? $validated['remarks'] : 'Standard bed allocation',
                     'created_at'      => now(),
                     'updated_at'      => now(),
                 ]);
@@ -153,13 +157,25 @@ class RoomAllocationController extends Controller
                     return response()->json(['message' => 'Target room must be different from current room.'], 422);
                 }
 
+                if ($validated['transfer_date'] < $currentAlloc->start_date) {
+                    return response()->json([
+                        'message' => 'Transfer date cannot be earlier than original check-in start date.'
+                    ], 422);
+                }
+
                 // 2. Lock both rooms in ascending ID order to prevent deadlocks
                 $roomIds = [$currentAlloc->room_id, $validated['target_room_id']];
                 sort($roomIds);
                 DB::table('rooms')->whereIn('room_id', $roomIds)->lockForUpdate()->get();
 
                 $targetRoom = DB::table('rooms')->where('room_id', $validated['target_room_id'])->first();
-                $oldRoom    = DB::table('rooms')->where('room_id', $currentAlloc->room_id)->first();
+                $oldRoom    = DB::table('rooms')->where('room_id', $currentAlloc->room_id'])->first();
+
+                if ($targetRoom->status === 'MAINTENANCE') {
+                    return response()->json([
+                        'message' => "Room {$targetRoom->room_number} is currently under maintenance."
+                    ], 422);
+                }
 
                 // 3. Check target room capacity under lock
                 $targetOccupied = DB::table('room_allocations')
@@ -185,9 +201,11 @@ class RoomAllocationController extends Controller
                     ]);
 
                 // 5. Step B of Transaction: Insert new 'Active' allocation in target room
-                $nextId = (DB::table('room_allocations')->max('allocation_id') ?? 100) + 1;
+                $maxId = DB::table('room_allocations')->lockForUpdate()->max('allocation_id') ?? 0;
+                $code  = 'ALLOC-' . (100 + $maxId + 1);
+
                 DB::table('room_allocations')->insert([
-                    'allocation_code' => 'ALLOC-' . $nextId,
+                    'allocation_code' => $code,
                     'resident_id'     => $currentAlloc->resident_id,
                     'room_id'         => $targetRoom->room_id,
                     'start_date'      => $validated['transfer_date'],
@@ -218,35 +236,39 @@ class RoomAllocationController extends Controller
             'remarks'       => 'required|string|max:255',
         ]);
 
-        return DB::transaction(function () use ($validated, $id) {
-            $alloc = DB::table('room_allocations')
-                ->where('allocation_id', $id)
-                ->where('status', 'Active')
-                ->lockForUpdate()
-                ->first();
+        try {
+            return DB::transaction(function () use ($validated, $id) {
+                $alloc = DB::table('room_allocations')
+                    ->where('allocation_id', $id)
+                    ->where('status', 'Active')
+                    ->lockForUpdate()
+                    ->first();
 
-            if (!$alloc) {
-                return response()->json(['message' => 'Active allocation record not found.'], 404);
-            }
+                if (!$alloc) {
+                    return response()->json(['message' => 'Active allocation record not found.'], 404);
+                }
 
-            if ($validated['checkout_date'] < $alloc->start_date) {
+                if ($validated['checkout_date'] < $alloc->start_date) {
+                    return response()->json([
+                        'message' => 'Checkout date cannot be earlier than check-in start date.'
+                    ], 422);
+                }
+
+                DB::table('room_allocations')
+                    ->where('allocation_id', $id)
+                    ->update([
+                        'end_date'   => $validated['checkout_date'],
+                        'status'     => 'Checked Out',
+                        'remarks'    => $validated['remarks'],
+                        'updated_at' => now(),
+                    ]);
+
                 return response()->json([
-                    'message' => 'Checkout date cannot be earlier than check-in start date.'
-                ], 422);
-            }
-
-            DB::table('room_allocations')
-                ->where('allocation_id', $id)
-                ->update([
-                    'end_date'   => $validated['checkout_date'],
-                    'status'     => 'Checked Out',
-                    'remarks'    => $validated['remarks'],
-                    'updated_at' => now(),
+                    'message' => 'Checkout committed: Bed released and occupancy view updated.'
                 ]);
-
-            return response()->json([
-                'message' => 'Checkout committed: Bed released and occupancy view updated.'
-            ]);
-        });
+            });
+        } catch (Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 }
