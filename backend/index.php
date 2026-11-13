@@ -1,4 +1,5 @@
 <?php
+// backend/index.php
 require_once 'db.php'; // Your Neon PDO connection
 
 header('Access-Control-Allow-Origin: *');
@@ -19,7 +20,7 @@ $input = json_decode(file_get_contents('php://input'), true) ?? [];
 // GROUP ROUTER: Send traffic to the correct Controller
 // ---------------------------------------------------------
 
-// Nimsara's Module: Room Allocations
+// 1. Nimsara's Module: Room Allocations
 if (strpos($uri, '/api/allocations') === 0) {
     require_once 'app/Http/Controllers/RoomAllocationController.php';
     $controller = new RoomAllocationController($pdo);
@@ -27,15 +28,13 @@ if (strpos($uri, '/api/allocations') === 0) {
     exit;
 }
 
-// Example for your teammates to add their modules later:
-/*
-if (strpos($uri, '/api/residents') === 0) {
-    require_once 'app/Http/Controllers/ResidentController.php';
-    $controller = new ResidentController($pdo);
+// 2. Teammate's Module: Kitchen Expenses
+if (strpos($uri, '/api/kitchens') === 0) {
+    require_once 'app/Http/Controllers/SharedKitchenController.php';
+    $controller = new SharedKitchenController($pdo);
     $controller->handleRequest($method, $uri, $input);
     exit;
 }
-*/
 
 // If no route matches
 http_response_code(404);
