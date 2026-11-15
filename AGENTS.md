@@ -5,7 +5,7 @@
 This is not a single monorepo app. Four independent pieces share one git repo:
 
 - `frontend/` - the shipped React 18 + Vite 5 UI. Hash routing in `frontend/src/main.jsx`: `#allocations` (default), `#kitchens`, `#expenses`. No lint or test scripts.
-- `backend/` - the plain-PHP API actually used by `frontend/` (not Laravel). `backend/index.php` is a manual router; controllers live in `backend/app/Http/Controllers/`; PDO/Postgres connection is `backend/db.php`. Routes are only `/api/allocations*` and `/api/kitchens`; anything else 404s. Frontend hardcodes `http://localhost:8000/api`.
+- `backend/` - the plain-PHP API actually used by `frontend/` (not Laravel). `backend/index.php` is a manual router; controllers live in `backend/app/Http/Controllers/`; PDO/Postgres connection is `backend/db.php`. Routes are only `/api/allocations*`, `/api/kitchens`, and `/api/expenses`; anything else 404s. Frontend hardcodes `http://localhost:8000/api`.
 - `backend-laravel/` - separate Laravel 13 app implementing only Monthly Fees (`/api/fees`). Not called by `frontend/`. All fee routes go through `EnsureAuthenticated` and return 401 without a Laravel-authenticated user.
 - `design-reference/` - throwaway React prototype with fictional data. Do not copy its root config into `frontend/` or treat it as the app.
 
@@ -43,7 +43,7 @@ php artisan test --filter=MonthlyFeeValidationTest
 - `backend/db.php` reads `DATABASE_URL` (env wins); its fallback is the pooled `stayledger_db` Neon URL. Keep pooling; `PDO::ATTR_EMULATE_PREPARES => true` is required because PgBouncer transaction pooling breaks PDO named prepared statements inside transactions.
 - Use `DATABASE_URL_UNPOOLED` for schemas, migrations, dumps, and session-state work. `backend/` has no migration runner; schemas are plain SQL in `backend/database/`.
 - `stayledger_allocations_schema.sql` is the authoritative Postgres schema, but it starts with `DROP TABLE` and seeds demo data - do not run it against shared Neon without confirmation. `stayledger_monthly_fees_schema.sql` mirrors the Laravel migrations; Laravel migrations are the source of truth. `stayledger_kitchen.sql` is MySQL syntax, references tables it never creates, and cannot run on Neon as-is.
-- The Expenses page stores user entries in `localStorage`: no expenses API or wired table exists yet. The kitchen endpoint returns `category`/`total_expense`, while `KitchenExpenseReport.jsx` expects `category_name`/`amount` - pre-existing mismatch.
+- The Expenses page uses `/api/expenses` backed by the `hostel_expenses` table; schema in `backend/database/stayledger_expenses_schema.sql`. The kitchen endpoint returns `category`/`total_expense`, while `KitchenExpenseReport.jsx` expects `category_name`/`amount` - pre-existing mismatch.
 
 ## Conventions / gotchas
 
