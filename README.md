@@ -31,3 +31,7 @@ Hostel Management System for Emarald Girls Hostel.
 
 ## Status
 Initial project setup.
+
+##hey!!! (delete after read)
+im not gonna type this with MD format and just saying the idea to you guys, for this project you can use Dev branch as a development and testing branch not pusing to the main branch yet and also end of the day is it better to put pull request of your works to the dev branch and the group leader or pm review them and resolve conflicts if there , and merge them and after the all can get pull from dev branch (git pull origin dev) you guys can work with less conflicts .
+thank you! (i put my pr to the dev branch if you don't consider the idea plz delete the pr and inform me )
