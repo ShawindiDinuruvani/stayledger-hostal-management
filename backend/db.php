@@ -1,7 +1,7 @@
 <?php
 // backend/db.php
 
-$DATABASE_URL = 'postgresql://stayledger_db_owner:npg_9iAEmaGHeKo1@ep-lingering-pine-b3dk5yfn-pooler.c-4.ap-southeast-1.aws.neon.tech/stayledger_db?sslmode=require';
+$DATABASE_URL = getenv('DATABASE_URL') ?: 'postgresql://stayledger_db_owner:npg_9iAEmaGHeKo1@ep-lingering-pine-b3dk5yfn-pooler.c-4.ap-southeast-1.aws.neon.tech:5432/stayledger_db?sslmode=require';
 
 try {
     $dbParts = parse_url($DATABASE_URL);
@@ -19,6 +19,7 @@ try {
     $pdo = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => true,
     ]);
 } catch (PDOException $e) {
     http_response_code(500);
