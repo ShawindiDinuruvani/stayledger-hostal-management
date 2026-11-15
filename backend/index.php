@@ -36,6 +36,14 @@ if (strpos($uri, '/api/kitchens') === 0) {
     exit;
 }
 
+// 3. Hostel Expenses
+if (strpos($uri, '/api/expenses') === 0) {
+    require_once 'app/Http/Controllers/ExpenseController.php';
+    $controller = new ExpenseController($pdo);
+    $controller->handleRequest($method, $uri, $input);
+    exit;
+}
+
 // If no route matches
 http_response_code(404);
 echo json_encode(['message' => 'API Endpoint not found in router']);
