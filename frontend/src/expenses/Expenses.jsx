@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AlertCircle,
   CalendarDays,
   Check,
   Download,
@@ -13,16 +14,7 @@ import Sidebar from '../Sidebar.jsx';
 import '../allocations/allocations.css';
 import './expenses.css';
 
-const STORAGE_KEY = 'stayledger-expenses-v1';
-
-const loadExpenses = () => {
-  try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return Array.isArray(stored) ? stored : [];
-  } catch {
-    return [];
-  }
-};
+const API_BASE = 'http://localhost:8000/api';
 
 const todayISO = () => new Date().toLocaleDateString('en-CA');
 
@@ -44,18 +36,42 @@ const emptyForm = () => ({
 });
 
 export default function Expenses() {
-  const [expenses, setExpenses] = useState(loadExpenses);
+  const [expenses, setExpenses] = useState([]);
   const [period, setPeriod] = useState(() => todayISO().slice(0, 7));
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState('');
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
-    } catch {}
-  }, [expenses]);
+    let ignore = false;
+
+    const loadExpenses = async () => {
+      setLoading(true);
+      setApiError('');
+
+      try {
+        const res = await fetch(`${API_BASE}/expenses`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!ignore) setExpenses(Array.isArray(data) ? data : []);
+      } catch {
+        if (!ignore) {
+          setApiError('Could not load expenses. Make sure the PHP API is running on localhost:8000.');
+        }
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+
+    loadExpenses();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const categories = useMemo(
     () => [...new Set(expenses.map(expense => expense.category).filter(Boolean))],
@@ -89,25 +105,42 @@ export default function Expenses() {
 
   const openModal = () => {
     setForm(emptyForm());
+    setApiError('');
     setModalOpen(true);
   };
 
-  const addExpense = event => {
+  const addExpense = async event => {
     event.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    setApiError('');
 
-    const entry = {
-      id: `EXP-${Date.now()}`,
-      description: form.description.trim(),
-      category: form.category.trim(),
-      facility: form.facility.trim(),
-      amount: Number(form.amount),
-      date: form.date
-    };
+    try {
+      const res = await fetch(`${API_BASE}/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: form.description.trim(),
+          category: form.category.trim(),
+          facility: form.facility.trim(),
+          amount: Number(form.amount),
+          date: form.date
+        })
+      });
+      const data = await res.json().catch(() => ({}));
 
-    setExpenses(current => [entry, ...current]);
-    setPeriod(entry.date.slice(0, 7));
-    setModalOpen(false);
-    showToast('Expense saved.');
+      if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+      if (!data.expense) throw new Error('The API did not return the saved expense.');
+
+      setExpenses(current => [data.expense, ...current]);
+      setPeriod(data.expense.date.slice(0, 7));
+      setModalOpen(false);
+      showToast('Expense saved.');
+    } catch (error) {
+      setApiError(error.message || 'Could not save the expense.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const exportCSV = () => {
@@ -176,6 +209,13 @@ export default function Expenses() {
           </div>
         </section>
 
+        {apiError && !modalOpen && (
+          <div className="sl-alert">
+            <AlertCircle size={16} />
+            <span>{apiError}</span>
+          </div>
+        )}
+
         <section className="sl-panel">
           <div className="sl-panel-header sl-exp-panel-head">
             <div>
@@ -205,7 +245,11 @@ export default function Expenses() {
                 </tr>
               </thead>
               <tbody>
-                {filteredExpenses.length > 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan="5" className="sl-exp-empty">Loading expenses...</td>
+                  </tr>
+                ) : filteredExpenses.length > 0 ? (
                   filteredExpenses.map(expense => (
                     <tr key={expense.id}>
                       <td><strong>{expense.description}</strong></td>
@@ -229,7 +273,7 @@ export default function Expenses() {
           </div>
 
           <div className="sl-exp-panel-footer">
-            <span>Saved in this browser</span>
+            <span>Stored in the database</span>
             <button className="sl-exp-export" onClick={exportCSV}>
               <Download size={14} /> Export CSV
             </button>
@@ -238,7 +282,7 @@ export default function Expenses() {
 
         <p className="sl-exp-note">
           <ShieldCheck size={14} />
-          Expenses are saved in this browser. Connect the API to sync records across devices.
+          Expenses are stored in the hostel database.
         </p>
 
         <footer className="sl-exp-page-footer">
@@ -267,6 +311,13 @@ export default function Expenses() {
             </div>
 
             <form className="sl-form" onSubmit={addExpense}>
+              {apiError && (
+                <div className="sl-alert">
+                  <AlertCircle size={16} />
+                  <span>{apiError}</span>
+                </div>
+              )}
+
               <label>
                 Description
                 <input
@@ -335,8 +386,8 @@ export default function Expenses() {
                 />
               </label>
 
-              <button type="submit" className="sl-btn sl-btn-primary sl-exp-save">
-                <Check size={16} /> Save expense
+              <button type="submit" className="sl-btn sl-btn-primary sl-exp-save" disabled={saving}>
+                <Check size={16} /> {saving ? 'Saving...' : 'Save expense'}
               </button>
             </form>
           </section>
