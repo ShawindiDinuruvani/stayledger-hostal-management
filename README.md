@@ -27,10 +27,19 @@ Hostel Management System for Emarald Girls Hostel.
 - To avoid breaking teammates' modules or modifying their working code, Dinuruvani's Monthly Fee module is isolated in `backend-laravel/`.
 - **Note on Unification:** Merging all modules into a single unified Laravel backend would require rewriting teammates' controllers, routes, and PDO queries. Folder renaming alone does not unify the applications. A single unified backend requires a separate, coordinated team migration.
 
+## Team Development Workflow & Branching Strategy
+- **Development Branch (`Dev`):** The team utilizes the `Dev` branch as the central integration and testing branch.
+- **Pull Requests:** Feature branches should submit pull requests targeting `Dev` rather than pushing directly to `main`.
+- **Review & Merge:** Team lead / PM reviews PRs, resolves any integration conflicts on `Dev`, and merges.
+- **Keeping Local Branches Updated:** Teammates should pull the latest updates from `Dev` (`git pull origin Dev`) to minimize merge conflicts.
+
+> **Team Note:** Please coordinate pull requests through the `Dev` branch for shared testing before preparing final releases into `main`.
+
 ## Database Migrations & Schemas (Source of Truth)
 - **Authoritative Runtime Migrations (Monthly Fees):**
   - `backend-laravel/database/migrations/2026_11_15_000001_create_monthly_fees_table.php`
   - `backend-laravel/database/migrations/2026_11_15_000002_create_monthly_fee_generation_routine.php`
+  - `backend-laravel/database/migrations/2026_11_15_000003_add_residents_foreign_key_to_monthly_fees_table.php`
 - **Standalone SQL Reference:**
   - `backend/database/stayledger_monthly_fees_schema.sql` (provided for direct PostgreSQL / ADBMS course submission inspection without the Laravel CLI).
 - **Allocations Schema:**
