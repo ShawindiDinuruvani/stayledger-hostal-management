@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import RoomAllocations from './allocations/RoomAllocations.jsx';
 import KitchenExpenseReport from './kitchens/KitchenExpenseReport.jsx';
+import Expenses from './expenses/Expenses.jsx';
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState(window.location.hash);
@@ -19,6 +20,10 @@ function App() {
   
   if (currentRoute === '#kitchens') {
     return <KitchenExpenseReport />;
+  }
+
+  if (currentRoute === '#expenses') {
+    return <Expenses />;
   }
 
   
