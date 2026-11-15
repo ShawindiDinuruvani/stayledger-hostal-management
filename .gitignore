@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 vendor/
 
 .env
@@ -14,6 +14,12 @@ vendor/
 /backend/storage/logs/*
 /backend/bootstrap/cache/*.php
 
+/backend-laravel/storage/logs/*
+/backend-laravel/bootstrap/cache/*.php
+/backend-laravel/database/*.sqlite
+/backend-laravel/database/*.sqlite-journal
+
+scratch/
 *.log
 .idea/
 .vscode/
