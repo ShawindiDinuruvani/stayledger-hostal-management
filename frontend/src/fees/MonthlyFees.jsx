@@ -52,7 +52,7 @@ const getInitials = (name = '') => {
     .join('');
 };
 
-export default function MonthlyFees() {
+export default function MonthlyFees({ onLogout, userRole }) {
   // Current date strings
   const today = new Date();
   const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
@@ -265,7 +265,7 @@ export default function MonthlyFees() {
 
   return (
     <div className="mf-container">
-      <Sidebar />
+      <Sidebar onLogout={onLogout} userRole={userRole} />
 
       <main className="mf-workspace">
         {/* Topbar */}

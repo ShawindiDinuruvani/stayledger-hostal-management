@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../Sidebar.jsx';
 
-export default function KitchenExpenseReport() {
+export default function KitchenExpenseReport({ onLogout, userRole }) {
     const [expenses, setExpenses] = useState([]);
 
     useEffect(() => {
@@ -17,7 +17,7 @@ export default function KitchenExpenseReport() {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f9fafb', fontFamily: 'sans-serif' }}>
-            <Sidebar />
+            <Sidebar onLogout={onLogout} userRole={userRole} />
             
             <div style={{ flex: 1, padding: '32px', marginLeft: '250px' }}>
                 <div style={{ backgroundColor: '#135c38', color: 'white', padding: '32px', borderRadius: '12px', marginBottom: '24px' }}>

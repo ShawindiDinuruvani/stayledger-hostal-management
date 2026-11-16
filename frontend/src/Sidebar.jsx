@@ -12,10 +12,11 @@ import {
   ShieldCheck, 
   UserCheck, 
   Leaf, 
-  ChevronDown 
+  ChevronDown,
+  LogOut
 } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ onLogout, userRole = 'admin' }) {
   // දැනට සිටින පිටුවේ URL hash එක තබා ගැනීම (මුලින්ම එනවිට hash එකක් නැත්නම් default එකක් දීම)
   const [currentRoute, setCurrentRoute] = useState(window.location.hash || '#allocations');
 
@@ -76,6 +77,8 @@ export default function Sidebar() {
         </a>
       </nav>
 
+      {userRole === 'admin' && (
+        <>
       <div className="sl-nav-label" style={{ marginTop: 24 }}>ADMINISTRATION</div>
       <nav className="sl-nav">
         <a href="#audit" className={`sl-nav-item ${currentRoute === '#audit' ? 'active' : ''}`}>
@@ -85,6 +88,21 @@ export default function Sidebar() {
           <UserCheck size={17} /><span>Users & access</span>
         </a>
       </nav>
+        </>
+      )}
+
+      <a href="#account" className={`sl-nav-item ${currentRoute === '#account' ? 'active' : ''}`}
+         style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', marginTop: 16 }}>
+        <ShieldCheck size={17} /><span>My Account</span>
+      </a>
+
+      {onLogout && (
+        <button type="button" className="sl-nav-item" onClick={onLogout}
+           style={{ width: '100%', display: 'flex', gap: 12, alignItems: 'center',
+             border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', marginTop: 16 }}>
+          <LogOut size={17} /><span>Logout</span>
+        </button>
+      )}
     </aside>
   );
 }

@@ -72,3 +72,17 @@ The Monthly Fees module connects to `http://localhost:8001/api` (configurable vi
 
 ## Documentation
 - Detailed Monthly Fee Management specifications: [docs/monthly-fee-management.md](docs/monthly-fee-management.md)
+
+## User Accounts & Access (Kulara)
+
+The independent Laravel 13 application in `backend/laravel/` provides administrator/staff authentication, user creation and editing, role-based access, activation controls, self-service password updates, administrator password resets, and automated security tests.
+
+| User Accounts service | Development port | API prefix from React |
+| --- | --- | --- |
+| `backend/laravel/` | **8002** | `/laravel/*` (Vite proxy) |
+
+Use `php artisan serve --host=127.0.0.1 --port=8002` from `backend/laravel/`. The `frontend/.env.example` documents both Laravel API origins without storing secrets. GitHub Actions on `Kulara` runs isolated SQLite tests and the React build.
+
+**Neon integration status:** the shared production database has NOT been connected or migrated by this module. Before using the real PostgreSQL database, rotate any exposed credentials, inspect the shared `users` schema with the read-only `stayledger:inspect-shared-users` command, and review `backend/laravel/NEON_USER_ACCESS_INTEGRATION.md`. Never run unreviewed `migrate:fresh` or a full migration set on the shared database. Separate PHP and Laravel services do not share login sessions automatically.
+
+For team integration, first review the complete application on `Dev`; the team lead should decide when to merge this PR into `main`.
