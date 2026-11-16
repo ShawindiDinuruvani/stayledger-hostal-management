@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import Login from './users/Login.jsx';
 import RoomAllocations from './allocations/RoomAllocations.jsx';
 import UsersAccess from './users/UsersAccess.jsx';
+import AccountSettings from './users/AccountSettings.jsx';
 
 function App() {
   const [page, setPage] = useState(window.location.hash || '#allocations');
@@ -132,6 +133,20 @@ function App() {
 
   if (page === '#login' || !user) {
     return <Login onLogin={handleLogin} />;
+  }
+
+  if (page === '#account') {
+    return (
+      <AccountSettings
+        user={user}
+        onLogout={handleLogout}
+        onPasswordChanged={() => {
+          setUser(null);
+          setStaffUsers([]);
+          window.location.hash = '#login';
+        }}
+      />
+    );
   }
 
   if (page === '#users') {
