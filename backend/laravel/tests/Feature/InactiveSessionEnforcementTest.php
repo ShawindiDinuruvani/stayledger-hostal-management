@@ -50,4 +50,27 @@ class InactiveSessionEnforcementTest extends TestCase
             ->assertOk()
             ->assertJsonPath('user.id', $staff->id);
     }
+
+    public function test_existing_admin_session_loses_admin_api_access_after_demotion(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'is_active' => true,
+            'password' => 'Password12345!',
+        ]);
+
+        $this->postJson('/login', [
+            'email' => $admin->email,
+            'password' => 'Password12345!',
+        ])->assertOk();
+
+        $this->getJson('/admin/users')->assertOk();
+
+        // Model a permission change made by another administrator.
+        $admin->forceFill(['role' => 'staff'])->save();
+
+        $this->getJson('/admin/users')->assertForbidden();
+        $this->getJson('/me')->assertOk()->assertJsonPath('user.role', 'staff');
+    }
+
 }
