@@ -25,6 +25,27 @@ class EnforceActiveAccount
             ], 401);
         }
 
+        if ($user) {
+            $fingerprint = $request->session()->get('stayledger_password_fingerprint');
+            if (is_string($fingerprint)) {
+                $expected = hash_hmac(
+                    'sha256',
+                    (string) $user->getAuthPassword(),
+                    (string) config('app.key')
+                );
+
+                if (! hash_equals($fingerprint, $expected)) {
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+
+                    return response()->json([
+                        'message' => 'Your login session has expired. Please sign in again.',
+                    ], 401);
+                }
+            }
+        }
+
         return $next($request);
     }
 }
