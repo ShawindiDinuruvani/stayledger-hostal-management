@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -50,55 +51,65 @@ class UserController extends Controller
         ], 201);
     }
 
-    // Update an existing user
-    public function update(
-        Request $request,
-        User $user
-    ): JsonResponse {
+    // Update an existing user without allowing the final active administrator to disappear.
+    public function update(Request $request, User $user): JsonResponse
+    {
         $data = $request->validate([
-            'name' => ['sometimes', 'required', 'string',
-                       'max:255'],
-            'email' => ['sometimes', 'required', 'email',
-                        'max:255',
-                        Rule::unique('users', 'email')
-                            ->ignore($user->id)],
-            'password' => ['sometimes', 'required',
-                           'string', 'min:12'],
-            'role' => ['sometimes',
-                       Rule::in(['admin', 'staff'])],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'email' => ['sometimes', 'required', 'email', 'max:255',
+                Rule::unique('users', 'email')->ignore($user->id)],
+            'password' => ['sometimes', 'required', 'string', 'min:12'],
+            'role' => ['sometimes', Rule::in(['admin', 'staff'])],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        // Prevent admin from removing their own access
-        if ($request->user()->id === $user->id) {
-            if (
-                (isset($data['role']) && $data['role'] !== 'admin') ||
-                (array_key_exists('is_active', $data) &&
-                 !$data['is_active'])
-            ) {
+        return DB::transaction(function () use ($request, $user, $data): JsonResponse {
+            // Row locks make concurrent administrator changes safe on PostgreSQL.
+            $activeAdminIds = User::query()
+                ->where('role', 'admin')
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->pluck('id');
+
+            $user->refresh();
+            $removesAdminAccess =
+                (array_key_exists('role', $data) && $data['role'] !== 'admin') ||
+                (array_key_exists('is_active', $data) && ! $data['is_active']);
+
+            if ($removesAdminAccess && $request->user()->id === $user->id) {
                 return response()->json([
                     'message' => 'Cannot disable or demote your own admin account.',
                 ], 422);
             }
-        }
 
-        foreach (['name', 'email', 'role', 'is_active'] as $field) {
-            if (array_key_exists($field, $data)) {
-                $user->$field = $data[$field];
+            if (
+                $removesAdminAccess &&
+                $user->role === 'admin' &&
+                $user->is_active &&
+                $activeAdminIds->count() <= 1
+            ) {
+                return response()->json([
+                    'message' => 'At least one active administrator must remain.',
+                ], 422);
             }
-        }
 
-        if (isset($data['password'])) {
-            $user->password = Hash::make($data['password']);
-        }
+            foreach (['name', 'email', 'role', 'is_active'] as $field) {
+                if (array_key_exists($field, $data)) {
+                    $user->$field = $data[$field];
+                }
+            }
 
-        $user->save();
+            if (isset($data['password'])) {
+                $user->password = Hash::make($data['password']);
+            }
 
-        return response()->json([
-            'message' => 'User updated successfully.',
-            'user' => $user->only([
-                'id', 'name', 'email', 'role', 'is_active'
-            ]),
-        ]);
+            $user->save();
+
+            return response()->json([
+                'message' => 'User updated successfully.',
+                'user' => $user->only(['id', 'name', 'email', 'role', 'is_active']),
+            ]);
+        });
     }
 }
