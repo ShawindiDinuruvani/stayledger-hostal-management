@@ -12,37 +12,43 @@ class EnforceActiveAccount
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+        if (! $user) {
+            return $next($request);
+        }
 
-        // Guests must still be handled by the normal 'auth' middleware.
-        if ($user && ! $user->is_active) {
+        // Fresh database lookup is necessary to enforce mid-session changes.
+        // This covers inactive, deleted, demoted and password-reset accounts.
+        $current = $user->fresh();
+
+        if (! $current || ! $current->is_active) {
             Auth::logout();
-
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             return response()->json([
-                'message' => 'Your account is inactive. Contact an administrator.',
+                'message' => 'Your account is inactive or unavailable. Please sign in again.',
             ], 401);
         }
 
-        if ($user) {
-            $fingerprint = $request->session()->get('stayledger_password_fingerprint');
-            if (is_string($fingerprint)) {
-                $expected = hash_hmac(
-                    'sha256',
-                    (string) $user->getAuthPassword(),
-                    (string) config('app.key')
-                );
+        // Refresh the guard so downstream role checks see the latest role.
+        Auth::setUser($current);
 
-                if (! hash_equals($fingerprint, $expected)) {
-                    Auth::logout();
-                    $request->session()->invalidate();
-                    $request->session()->regenerateToken();
+        $fingerprint = $request->session()->get('stayledger_password_fingerprint');
+        if (is_string($fingerprint)) {
+            $expected = hash_hmac(
+                'sha256',
+                (string) $current->getAuthPassword(),
+                (string) config('app.key')
+            );
 
-                    return response()->json([
-                        'message' => 'Your login session has expired. Please sign in again.',
-                    ], 401);
-                }
+            if (! hash_equals($fingerprint, $expected)) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return response()->json([
+                    'message' => 'Your login session has expired. Please sign in again.',
+                ], 401);
             }
         }
 
