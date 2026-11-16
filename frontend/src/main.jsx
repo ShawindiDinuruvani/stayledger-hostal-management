@@ -173,6 +173,7 @@ function App() {
     return (
       <UsersAccess
         users={staffUsers}
+        currentUser={user}
         onStaffCreated={created => {
           setStaffUsers(previous => [...previous, created]);
         }}
