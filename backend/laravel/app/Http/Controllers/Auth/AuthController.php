@@ -42,6 +42,13 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
+        // New login sessions carry an HMAC of the current password hash.
+        // This lets the middleware revoke sessions after admin password resets.
+        $request->session()->put(
+            'stayledger_password_fingerprint',
+            hash_hmac('sha256', (string) $request->user()->getAuthPassword(), (string) config('app.key'))
+        );
+
         return response()->json([
             'message' => 'Login successful.',
             'user' => $request->user()->only(['id', 'name', 'email', 'role', 'is_active']),
