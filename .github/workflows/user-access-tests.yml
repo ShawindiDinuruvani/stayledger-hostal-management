@@ -5,6 +5,7 @@ on:
     branches: [Kulara]
     paths:
       - 'backend/laravel/**'
+      - 'frontend/**'
       - '.github/workflows/user-access-tests.yml'
   workflow_dispatch:
 
@@ -45,3 +46,22 @@ jobs:
           SESSION_DRIVER: array
           CACHE_STORE: array
         run: php artisan test
+
+  frontend-build:
+    name: React production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --ignore-scripts
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
