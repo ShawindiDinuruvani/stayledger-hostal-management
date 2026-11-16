@@ -2,7 +2,7 @@ name: StayLedger User Access Tests
 
 on:
   push:
-    branches: [Kulara]
+    branches: [Kulara, main]
     paths:
       - 'backend/laravel/**'
       - 'frontend/**'
@@ -65,3 +65,63 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+  postgres-integration:
+    name: Isolated PostgreSQL integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stayledger_ci
+          POSTGRES_PASSWORD: local-ci-password-only
+          POSTGRES_DB: stayledger_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stayledger_ci -d stayledger_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'false'
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: stayledger_ci
+      DB_USERNAME: stayledger_ci
+      DB_PASSWORD: local-ci-password-only
+      DB_SSLMODE: disable
+      SESSION_DRIVER: array
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      DB_URL: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, curl, xml, pdo_sqlite, sqlite3, pdo_pgsql, pgsql
+          tools: composer:v2
+          coverage: none
+      - name: Install Laravel dependencies
+        working-directory: backend/laravel
+        run: composer install --prefer-dist --no-interaction --no-progress
+      - name: Create test application key
+        working-directory: backend/laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+      - name: Confirm isolated database target
+        run: |
+          test "$DB_HOST" = "127.0.0.1"
+          test "$DB_DATABASE" = "stayledger_ci"
+      - name: Run Laravel feature tests with PostgreSQL 16
+        working-directory: backend/laravel
+        run: php artisan test
+      - name: Inspect shared users schema read-only
+        working-directory: backend/laravel
+        run: php artisan stayledger:inspect-shared-users
