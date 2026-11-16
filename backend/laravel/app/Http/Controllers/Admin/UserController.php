@@ -102,6 +102,13 @@ class UserController extends Controller
             $this->rejectCaseInsensitiveDuplicateEmail($data['email'], (int) $user->id);
         }
 
+        // Self-service password changes must verify the existing password.
+        if ($request->user()->id === $user->id && isset($data['password'])) {
+            return response()->json([
+                'message' => 'Use My Account to change your own password.',
+            ], 422);
+        }
+
         return DB::transaction(function () use ($request, $user, $data): JsonResponse {
             // Row locks make concurrent administrator changes safe on PostgreSQL.
             $activeAdminIds = User::query()
