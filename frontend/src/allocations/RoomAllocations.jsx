@@ -27,7 +27,7 @@ const getInitials = (name = '') =>
     .map(w => w[0].toUpperCase())
     .join('');
 
-export default function RoomAllocations() {
+export default function RoomAllocations({ onLogout, userRole }) {
   const [rooms, setRooms] = useState([]);
   const [allocations, setAllocations] = useState([]);
   const [residents, setResidents] = useState([]);
@@ -237,7 +237,7 @@ export default function RoomAllocations() {
 
   return (
     <div className="sl-layout">
-      <Sidebar />
+      <Sidebar onLogout={onLogout} userRole={userRole} />
 
       <main className="sl-workspace">
         <div className="sl-topbar">
