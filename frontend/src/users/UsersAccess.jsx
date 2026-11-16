@@ -30,6 +30,7 @@ const EMPTY_NEW_USER = {
 const EMPTY_EDIT_USER = {
   name: '',
   email: '',
+  password: '',
   role: 'staff',
   is_active: true,
 };
@@ -101,7 +102,7 @@ function validateUser({ name, email, password, role }, users, excludedId = null)
   }
   if (cleanedEmail.length > 255) return 'Email must contain 255 characters or fewer.';
   if (!['admin', 'staff'].includes(role)) return 'Please select a valid role.';
-  if (password !== undefined && password.length < 12) {
+  if (password !== undefined && (excludedId === null || password.length > 0) && password.length < 12) {
     return 'Password must contain at least 12 characters.';
   }
 
@@ -116,6 +117,7 @@ function validateUser({ name, email, password, role }, users, excludedId = null)
 
 export default function UsersAccess({
   users = [],
+  currentUser = null,
   onStaffCreated,
   onStaffUpdated,
   onLogout,
@@ -167,6 +169,7 @@ export default function UsersAccess({
     setEditStaff({
       name: user.name || '',
       email: user.email || '',
+      password: '',
       role: user.role || 'staff',
       is_active: isActiveUser(user.is_active),
     });
@@ -225,6 +228,8 @@ export default function UsersAccess({
         email: editStaff.email.trim(),
         role: editStaff.role,
         is_active: editStaff.is_active,
+        ...(editStaff.password && String(currentUser?.id) !== String(editingUser.id)
+          ? { password: editStaff.password } : {}),
       };
       const updatedUser = await saveUserRequest(
         `/laravel/admin/users/${encodeURIComponent(editingUser.id)}`,
@@ -330,6 +335,14 @@ export default function UsersAccess({
                   <label className="sl-users-field" htmlFor="sl-edit-email">Email Address
                     <input id="sl-edit-email" type="email" value={editStaff.email} maxLength={255} required disabled={editSaving} onChange={(e) => setEditStaff({ ...editStaff, email: e.target.value })} />
                   </label>
+                  {String(currentUser?.id) !== String(editingUser.id) && (
+                    <label className="sl-users-field" htmlFor="sl-edit-password">Reset Password (optional)
+                      <input id="sl-edit-password" type="password" autoComplete="new-password"
+                        value={editStaff.password || ''} minLength={12} disabled={editSaving}
+                        onChange={(e) => setEditStaff({ ...editStaff, password: e.target.value })}
+                        placeholder="Leave blank to keep password" />
+                    </label>
+                  )}
                   <label className="sl-users-field" htmlFor="sl-edit-role">Account Role
                     <select id="sl-edit-role" value={editStaff.role} disabled={editSaving} onChange={(e) => setEditStaff({ ...editStaff, role: e.target.value })}>
                       <option value="staff">Staff</option>
