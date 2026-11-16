@@ -1,0 +1,25 @@
+.sl-account-page{padding:32px;max-width:980px;margin:0 auto;color:#183b2c}
+.sl-account-title{display:flex;align-items:center;gap:16px;margin-bottom:30px}
+.sl-account-title h1{margin:0 0 6px;font-size:30px;font-weight:750;color:#143d2b}
+.sl-account-title p{margin:0;color:#75837c;font-size:14px}
+.sl-account-icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:15px;background:#e8f4ed;color:#135a3f}
+.sl-account-card{border:1px solid #e1eae4;background:#fff;border-radius:16px;padding:26px;margin-bottom:24px;box-shadow:0 6px 24px rgba(20,65,40,.03)}
+.sl-account-card h2{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:18px;color:#173e2c}
+.sl-account-card>p{margin:0 0 20px;color:#6c7b70;font-size:14px;line-height:1.65}
+.sl-account-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.sl-account-details>div{display:flex;flex-direction:column;gap:8px;padding:16px;background:#f7faf8;border-radius:10px;min-width:0}
+.sl-account-details span{color:#708077;font-size:12px}
+.sl-account-details strong{overflow-wrap:anywhere;font-size:14px;color:#203a2b}
+.sl-account-form{display:flex;flex-direction:column;gap:10px;max-width:450px}
+.sl-account-form label{font-size:13px;font-weight:650;color:#263e33;margin-top:8px}
+.sl-account-form input{width:100%;min-height:46px;border:1px solid #dce5df;border-radius:9px;padding:12px 14px;font:inherit;outline:none;color:#20382d}
+.sl-account-form input:focus{border-color:#177452;box-shadow:0 0 0 3px rgba(23,116,82,.1)}
+.sl-account-form input:disabled{opacity:.65}
+.sl-account-error{display:flex;gap:8px;align-items:flex-start;padding:12px;background:#fff1f0;border:1px solid #ffdedb;border-radius:8px;color:#b42318;font-size:13px;line-height:1.5}
+.sl-account-error svg{flex-shrink:0}
+.sl-account-button{margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:47px;border:0;border-radius:9px;background:#10583e;color:#fff;padding:12px 20px;font-weight:650;cursor:pointer}
+.sl-account-button:hover:not(:disabled){background:#0c4632}
+.sl-account-button:disabled{opacity:.75;cursor:wait}
+.sl-account-spin{animation:sl-account-rotate .9s linear infinite}
+@keyframes sl-account-rotate{to{transform:rotate(360deg)}}
+@media(max-width:800px){.sl-account-page{padding:24px 16px}.sl-account-details{grid-template-columns:1fr}.sl-account-card{padding:20px}}
