@@ -1,5 +1,6 @@
 <?php
 // backend/db.php
+
 $DATABASE_URL = 'postgresql://stayledger_db_owner:npg_9iAEmaGHeKo1@ep-lingering-pine-b3dk5yfn-pooler.c-4.ap-southeast-1.aws.neon.tech/stayledger_db?sslmode=require';
 
 try {
@@ -7,11 +8,14 @@ try {
     $host = $dbParts['host'];
     $port = $dbParts['port'] ?? 5432;
     $user = $dbParts['user'];
-    $pass = isset($dbParts['pass']) ? urldecode($dbParts['pass']) : '';
+    
+    $pass = isset($dbParts['pass']) ? urldecode($dbParts['pass']) : ''; 
     $dbname = ltrim($dbParts['path'], '/');
 
+   
     $dsn = "pgsql:host={$host};port={$port};dbname={$dbname};sslmode=require";
 
+    
     $pdo = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

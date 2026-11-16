@@ -1,64 +1,88 @@
-# StayLedger — Emarald Girls Hostel
+# StayLedger
 
-**CS304.3 Advanced Database Management Systems · Group L**
+Hostel Management System for Emarald Girls Hostel.
 
-Hostel management system built by a ten-member team.
+## Project Details
+- Module: CS304.3 Advanced Database Management Systems
+- Organization: Emarald Girls Hostel
+- Database Engine: PostgreSQL
 
-## Architecture
+## Technology Stack & Architecture
+- **Frontend:** React 18 / Vite
+- **Team Modules Backend:** Native PHP with PDO (`backend/`)
+- **Monthly Fee Management Backend:** Laravel 13 (`backend-laravel/`)
+- **Database:** PostgreSQL (with PL/pgSQL stored procedures)
 
-| Component | Technology | Development port |
-| --- | --- | --- |
-| Multi-module frontend | React / Vite | 5173 |
-| Room Allocations and other existing modules | Native PHP / PDO | 8000 |
-| Monthly Fees (teammate-owned) | Laravel | 8001 |
-| **User Accounts & Access** | Laravel | **8002** |
-| Team database | PostgreSQL / Neon | Hosted |
+## Backend Directory Structure & Module Ownership
 
-The frontend forwards `/laravel/*` requests to the User Accounts backend (port 8002 by default). The Monthly Fees Laravel service keeps its separate port. The team has **not yet implemented single sign-on** across the native PHP backend and the two Laravel applications; sharing Neon does not share sessions.
+| Directory | Architecture | Module Ownership | Default Port | Base API URL |
+| :--- | :--- | :--- | :--- | :--- |
+| `backend/` | Native PHP / PDO | Teammates' modules: Room Allocations & Checkout (N.L. Lekamge), Shared Kitchens & Expenses | `8000` | `http://localhost:8000/api` |
+| `backend-laravel/` | Laravel 13 | Monthly Fee Management (S. Dinuruvani - 36750) | `8001` | `http://localhost:8001/api` |
+| `frontend/` | React 18 / Vite | Multi-module UI (Allocations on Port 8000; Monthly Fees on Port 8001) | `5173` | Browser (`http://localhost:5173`) |
 
-## User Accounts & Access module
+### Why Two Backend Directories Exist
+- S. Dinuruvani's module is required to be implemented in Laravel.
+- Teammates' modules were developed and checked out as native PHP scripts in `backend/`.
+- To avoid breaking teammates' modules or modifying their working code, Dinuruvani's Monthly Fee module is isolated in `backend-laravel/`.
+- **Note on Unification:** Merging all modules into a single unified Laravel backend would require rewriting teammates' controllers, routes, and PDO queries. Folder renaming alone does not unify the applications. A single unified backend requires a separate, coordinated team migration.
 
-The user module implements:
+## Team Development Workflow & Branching Strategy
+- **Development Branch (`Dev`):** The team utilizes the `Dev` branch as the central integration and testing branch.
+- **Pull Requests:** Feature branches should submit pull requests targeting `Dev` rather than pushing directly to `main`.
+- **Review & Merge:** Team lead / PM reviews PRs, resolves any integration conflicts on `Dev`, and merges.
+- **Keeping Local Branches Updated:** Teammates should pull the latest updates from `Dev` (`git pull origin Dev`) to minimize merge conflicts.
 
-- Admin/Staff login, logout, sessions and CSRF protection.
-- User creation, listing, search, editing and account activation/deactivation.
-- Role-based access control enforced on Laravel routes.
-- Unique and case-insensitive email validation, password hashing and a 12-character minimum.
-- My Account password changes and administrator-initiated password resets.
-- Password-reset session revocation for sessions established with the current login code.
-- Safeguards against removing your own admin role or disabling the final active administrator.
-- Non-destructive PostgreSQL migration for the shared `users` table.
-- Automated Laravel/SQLite security tests and React production build on GitHub Actions.
+> **Team Note:** Please coordinate pull requests through the `Dev` branch for shared testing before preparing final releases into `main`.
 
-## Development
+## Database Migrations & Schemas (Source of Truth)
+- **Authoritative Runtime Migrations (Monthly Fees):**
+  - `backend-laravel/database/migrations/2026_11_15_000001_create_monthly_fees_table.php`
+  - `backend-laravel/database/migrations/2026_11_15_000002_create_monthly_fee_generation_routine.php`
+  - `backend-laravel/database/migrations/2026_11_15_000003_add_residents_foreign_key_to_monthly_fees_table.php`
+- **Standalone SQL Reference:**
+  - `backend/database/stayledger_monthly_fees_schema.sql` (provided for direct PostgreSQL / ADBMS course submission inspection without the Laravel CLI).
+- **Allocations Schema:**
+  - `backend/database/stayledger_allocations_schema.sql`
 
-Run the existing native PHP backend on port **8000**, Monthly Fees Laravel on **8001**, and the User Accounts Laravel app at `backend/laravel` on **8002**. Run Vite from `frontend/` on **5173**.
+## Running the Applications
 
-For the User Accounts Laravel app, install Composer dependencies and configure an ignored `.env`; never commit database secrets. When starting that backend:
-
+### 1. Run Teammates' Native PHP Backend (Port 8000)
 ```bash
-cd backend/laravel
-php artisan serve --host=127.0.0.1 --port=8002
+cd backend
+php -S localhost:8000
 ```
 
-Frontend:
+### 2. Run Monthly Fee Laravel Backend (Port 8001)
+```bash
+cd backend-laravel
+composer install
+php artisan migrate
+php artisan serve --port=8001
+```
 
+### 3. Run Frontend Application (Port 5173)
 ```bash
 cd frontend
-npm ci
+npm install
 npm run dev
 ```
 
-The optional `frontend/.env.example` documents API origins. Laravel's `backend/laravel/.env.neon.example` is a **placeholder**, not real credentials.
+The Monthly Fees module connects to `http://localhost:8001/api` (configurable via `VITE_LARAVEL_API_URL` in `frontend/.env`), while teammates' pages connect to `http://localhost:8000/api`.
 
-## Tests and database safety
+## Documentation
+- Detailed Monthly Fee Management specifications: [docs/monthly-fee-management.md](docs/monthly-fee-management.md)
 
-The `Kulara` branch runs a GitHub Actions workflow for isolated SQLite Laravel tests and the React build.
+## User Accounts & Access (Kulara)
 
-**Live Neon verification is pending** until the team provides rotated credentials for an isolated Neon development branch. Before any Neon schema write, use the read-only `php artisan stayledger:inspect-shared-users` command and review `backend/laravel/NEON_USER_ACCESS_INTEGRATION.md`. Do not run `migrate:fresh`, rollback, or an unreviewed full migration set on the team database.
+The independent Laravel 13 application in `backend/laravel/` provides administrator/staff authentication, user creation and editing, role-based access, activation controls, self-service password updates, administrator password resets, and automated security tests.
 
-The previously committed connection URL in `backend/db.php` was exposed. The Neon owner must rotate that credential, remove it from repository source and assess Git history.
+| User Accounts service | Development port | API prefix from React |
+| --- | --- | --- |
+| `backend/laravel/` | **8002** | `/laravel/*` (Vite proxy) |
 
-## Team collaboration
+Use `php artisan serve --host=127.0.0.1 --port=8002` from `backend/laravel/`. The `frontend/.env.example` documents both Laravel API origins without storing secrets. GitHub Actions on `Kulara` runs isolated SQLite tests and the React build.
 
-This is the `Kulara` member branch. Team integration should be reviewed and coordinated against the `Dev` branch. Do not merge user-account backend migrations blindly with the monthly-fees Laravel migrations because the apps share table names and migration history.
+**Neon integration status:** the shared production database has NOT been connected or migrated by this module. Before using the real PostgreSQL database, rotate any exposed credentials, inspect the shared `users` schema with the read-only `stayledger:inspect-shared-users` command, and review `backend/laravel/NEON_USER_ACCESS_INTEGRATION.md`. Never run unreviewed `migrate:fresh` or a full migration set on the shared database. Separate PHP and Laravel services do not share login sessions automatically.
+
+For team integration, first review the complete application on `Dev`; the team lead should decide when to merge this PR into `main`.

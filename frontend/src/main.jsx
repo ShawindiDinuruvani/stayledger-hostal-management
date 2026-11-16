@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 
 import Login from './users/Login.jsx';
 import RoomAllocations from './allocations/RoomAllocations.jsx';
+import KitchenExpenseReport from './kitchens/KitchenExpenseReport.jsx';
+import MonthlyFees from './fees/MonthlyFees.jsx';
 import UsersAccess from './users/UsersAccess.jsx';
 import AccountSettings from './users/AccountSettings.jsx';
 
@@ -125,7 +127,7 @@ function App() {
     return (
       <main style={{ padding: 40, textAlign: 'center' }}>
         <p role="alert">{authError}</p>
-        <p>Check that the Laravel backend is running on port 8001.</p>
+        <p>Check that the Laravel backend is running on port 8002.</p>
         <button type="button" onClick={() => setRetry(value => value + 1)}>Retry Connection</button>
       </main>
     );
@@ -185,7 +187,15 @@ function App() {
     );
   }
 
-  // Other group modules retain their own UI; user access is checked first.
+  // Preserve the team's existing Kitchen and Monthly Fees modules.
+  if (page === '#kitchens') {
+    return <KitchenExpenseReport onLogout={handleLogout} userRole={user.role} />;
+  }
+
+  if (page === '#fees') {
+    return <MonthlyFees onLogout={handleLogout} userRole={user.role} />;
+  }
+
   return <RoomAllocations onLogout={handleLogout} userRole={user.role} />;
 }
 
