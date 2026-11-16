@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -15,6 +17,19 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
+
+        // Support mixed-case input without guessing between legacy duplicate accounts.
+        $email = Str::lower(trim($credentials['email']));
+        $matches = User::query()->whereRaw('LOWER(email) = ?', [$email])
+            ->limit(2)->pluck('email');
+
+        if ($matches->count() !== 1) {
+            return response()->json([
+                'message' => 'Invalid credentials or inactive account.',
+            ], 401);
+        }
+
+        $credentials['email'] = $matches->first();
 
         if (!Auth::attempt([
             ...$credentials,
