@@ -9,9 +9,38 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
+    private function normaliseAccountFields(Request $request): void
+    {
+        $changes = [];
+        if (is_string($request->input('name'))) {
+            $changes['name'] = trim($request->input('name'));
+        }
+        if (is_string($request->input('email'))) {
+            $changes['email'] = Str::lower(trim($request->input('email')));
+        }
+        if ($changes) {
+            $request->merge($changes);
+        }
+    }
+
+    private function rejectCaseInsensitiveDuplicateEmail(string $email, ?int $exceptUserId = null): void
+    {
+        $query = User::query()->whereRaw('LOWER(email) = ?', [Str::lower($email)]);
+        if ($exceptUserId !== null) {
+            $query->where('id', '!=', $exceptUserId);
+        }
+
+        if ($query->exists()) {
+            throw ValidationException::withMessages([
+                'email' => ['An account with this email address already exists.'],
+            ]);
+        }
+    }
     // View all users
     public function index(): JsonResponse
     {
@@ -26,6 +55,8 @@ class UserController extends Controller
     // Create a new user
     public function store(Request $request): JsonResponse
     {
+        $this->normaliseAccountFields($request);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255',
@@ -34,6 +65,8 @@ class UserController extends Controller
             'role' => ['required', Rule::in(['admin', 'staff'])],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+
+        $this->rejectCaseInsensitiveDuplicateEmail($data['email']);
 
         $user = new User();
         $user->name = $data['name'];
@@ -54,6 +87,8 @@ class UserController extends Controller
     // Update an existing user without allowing the final active administrator to disappear.
     public function update(Request $request, User $user): JsonResponse
     {
+        $this->normaliseAccountFields($request);
+
         $data = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'email', 'max:255',
@@ -62,6 +97,10 @@ class UserController extends Controller
             'role' => ['sometimes', Rule::in(['admin', 'staff'])],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+
+        if (array_key_exists('email', $data)) {
+            $this->rejectCaseInsensitiveDuplicateEmail($data['email'], (int) $user->id);
+        }
 
         return DB::transaction(function () use ($request, $user, $data): JsonResponse {
             // Row locks make concurrent administrator changes safe on PostgreSQL.
