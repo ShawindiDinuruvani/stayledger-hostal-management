@@ -12,10 +12,11 @@ import {
   ShieldCheck, 
   UserCheck, 
   Leaf, 
-  ChevronDown 
+  ChevronDown,
+  LogOut
 } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ onLogout, userRole = 'admin' }) {
   return (
     <aside className="sl-sidebar">
       <div className="sl-brand-wrap">
@@ -43,7 +44,7 @@ export default function Sidebar() {
         <a href="#rooms" className="sl-nav-item">
           <Building2 size={17} /><span>Rooms & floors</span>
         </a>
-        <a href="#allocations" className="sl-nav-item active">
+        <a href="#allocations" className={!window.location.hash || window.location.hash === '#allocations' ? "sl-nav-item active" : "sl-nav-item"}>
           <ArrowLeftRight size={17} /><span>Allocations</span>
         </a>
         <a href="#fees" className="sl-nav-item">
@@ -63,15 +64,32 @@ export default function Sidebar() {
         </a>
       </nav>
 
+
+      {userRole === 'admin' && (
+        <>
       <div className="sl-nav-label" style={{ marginTop: 24 }}>ADMINISTRATION</div>
       <nav className="sl-nav">
         <a href="#audit" className="sl-nav-item">
           <ShieldCheck size={17} /><span>Audit history</span>
         </a>
-        <a href="#users" className="sl-nav-item">
+        <a href="#users" className={window.location.hash === '#users' ? "sl-nav-item active" : "sl-nav-item"}>
           <UserCheck size={17} /><span>Users & access</span>
         </a>
       </nav>
+        </>
+      )}
+      {onLogout && (
+        <button
+          type="button"
+          className="sl-nav-item"
+          onClick={onLogout}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            textAlign: 'left', marginTop: 16 }}
+        >
+          <LogOut size={17} /><span>Logout</span>
+        </button>
+      )}
     </aside>
   );
 }
