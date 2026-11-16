@@ -78,6 +78,13 @@ export default function Sidebar({ onLogout, userRole = 'admin' }) {
       </nav>
         </>
       )}
+      <a
+        href="#account"
+        className={window.location.hash === '#account' ? 'sl-nav-item active' : 'sl-nav-item'}
+        style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', marginTop: 16 }}
+      >
+        <ShieldCheck size={17} /><span>My Account</span>
+      </a>
       {onLogout && (
         <button
           type="button"
