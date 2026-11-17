@@ -7,6 +7,7 @@ on:
       - 'backend/laravel/**'
       - 'backend-laravel/**'
       - 'backend/auth_guard.php'
+      - 'backend/db.php'
       - 'backend/index.php'
       - 'frontend/**'
       - '.github/workflows/user-access-tests.yml'
@@ -40,6 +41,12 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
+      - name: Ensure the native PHP connection contains no embedded secret
+        run: |
+          if grep -E -n "postgres(ql)?://[^[:space:]]+:[^[:space:]]+@" backend/db.php; then
+            echo "Embedded database credentials detected in backend/db.php"
+            exit 1
+          fi
       - name: Run isolated database tests
         working-directory: backend/laravel
         env:
