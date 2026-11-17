@@ -15,9 +15,10 @@ import {
   Download
 } from 'lucide-react';
 import Sidebar from '../Sidebar.jsx';
+import { fetchWithAuth } from '../users/authFetch.js';
 import './allocations.css';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/native-api';
 
 const getInitials = (name = '') =>
   name
@@ -73,14 +74,14 @@ export default function RoomAllocations({ onLogout, userRole }) {
     setLoading(true);
     setApiError('');
     try {
-      const res = await fetch(`${API_BASE}/allocations/dashboard`);
+      const res = await fetchWithAuth(`${API_BASE}/allocations/dashboard`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setRooms(data.rooms || []);
       setAllocations(data.allocations || []);
       setResidents(data.residents || []);
     } catch (err) {
-      setApiError('Could not connect to MySQL API on localhost:8000. Ensure PHP server & XAMPP MySQL are running.');
+      setApiError('Could not load the protected allocations API. Verify the native PHP backend and login session.');
     } finally {
       setLoading(false);
     }
@@ -135,7 +136,7 @@ export default function RoomAllocations({ onLogout, userRole }) {
     setFormError('');
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/allocations`, {
+      const res = await fetchWithAuth(`${API_BASE}/allocations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(allocForm)
@@ -157,7 +158,7 @@ export default function RoomAllocations({ onLogout, userRole }) {
     setFormError('');
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/allocations/${selectedAlloc.allocation_id}/transfer`, {
+      const res = await fetchWithAuth(`${API_BASE}/allocations/${selectedAlloc.allocation_id}/transfer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(transferForm)
@@ -180,7 +181,7 @@ export default function RoomAllocations({ onLogout, userRole }) {
     setFormError('');
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/allocations/${selectedAlloc.allocation_id}/checkout`, {
+      const res = await fetchWithAuth(`${API_BASE}/allocations/${selectedAlloc.allocation_id}/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(checkoutForm)
