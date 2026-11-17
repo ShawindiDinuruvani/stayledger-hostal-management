@@ -5,6 +5,9 @@ on:
     branches: [Kulara, main]
     paths:
       - 'backend/laravel/**'
+      - 'backend-laravel/**'
+      - 'backend/auth_guard.php'
+      - 'backend/index.php'
       - 'frontend/**'
       - '.github/workflows/user-access-tests.yml'
   workflow_dispatch:
@@ -172,6 +175,7 @@ jobs:
       - name: Start isolated Laravel and Vite applications
         run: |
           (cd backend/laravel && php artisan serve --host=127.0.0.1 --port=8002 > /tmp/stayledger-auth.log 2>&1) &
+          (cd backend && php -S 127.0.0.1:8000 index.php > /tmp/stayledger-native.log 2>&1) &
           (cd frontend && npm run dev > /tmp/stayledger-vite.log 2>&1) &
           for i in $(seq 1 45); do
             if curl -fsS http://localhost:5173/laravel/csrf-token > /dev/null; then
@@ -182,6 +186,39 @@ jobs:
           cat /tmp/stayledger-auth.log
           cat /tmp/stayledger-vite.log
           exit 1
+      - name: Confirm native PHP API rejects anonymous access
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/api/kitchens)
+          test "$code" = "401"
       - name: Run browser tests against Laravel auth and React routes
         working-directory: frontend
         run: npx playwright test tests/system-flow.spec.cjs --reporter=line --workers=1
+
+  fees-auth-tests:
+    name: Monthly Fees central session integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, curl, xml, pdo_sqlite, sqlite3
+          tools: composer:v2
+          coverage: none
+      - name: Install Monthly Fees Laravel dependencies
+        working-directory: backend-laravel
+        run: composer install --prefer-dist --no-interaction --no-progress
+      - name: Run Monthly Fees isolated tests
+        working-directory: backend-laravel
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          SESSION_DRIVER: array
+          CACHE_STORE: array
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan test
