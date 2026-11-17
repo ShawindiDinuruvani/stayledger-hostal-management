@@ -1,10 +1,10 @@
 <?php
 // backend/index.php
-require_once 'db.php'; // Your Neon PDO connection
 
-header('Access-Control-Allow-Origin: *');
+// Requests now use same-origin Vite proxies; never grant wildcard credentialed CORS.
+header('Cache-Control: no-store');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Accept');
+header('Access-Control-Allow-Headers: Content-Type, Accept, X-CSRF-TOKEN');
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -15,6 +15,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+// Check the central Laravel session before opening the shared database.
+// Direct calls to this service cannot bypass authentication.
+if (str_starts_with($uri, '/api/allocations') || str_starts_with($uri, '/api/kitchens')) {
+    require_once __DIR__ . '/auth_guard.php';
+    stayledger_require_user_access();
+    require_once __DIR__ . '/db.php';
+}
+
 
 // ---------------------------------------------------------
 // GROUP ROUTER: Send traffic to the correct Controller
