@@ -69,8 +69,21 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
+        // A separate service must never accept a stale active/role snapshot.
+        // Re-read the user even when the caller uses a previously established session.
+        $current = $request->user()?->fresh();
+        if (! $current || ! $current->is_active) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return response()->json([
+                'message' => 'Login session is inactive or expired.',
+            ], 401);
+        }
+
         return response()->json([
-            'user' => $request->user()->only(['id', 'name', 'email', 'role', 'is_active']),
+            'user' => $current->only(['id', 'name', 'email', 'role', 'is_active']),
         ]);
     }
 }

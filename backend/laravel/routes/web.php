@@ -16,6 +16,9 @@ Route::post('/login', [AuthController::class, 'login'])
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    // Server-to-server session assertion for independent team services.
+    // POST is deliberately subject to Laravel web CSRF validation.
+    Route::post('/integration/verify', [AuthController::class, 'me']);
     Route::post('/account/password', [PasswordController::class, 'update'])->middleware('throttle:5,1');
 });
 // Admin-only User Management

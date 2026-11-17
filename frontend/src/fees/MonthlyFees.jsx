@@ -21,10 +21,11 @@ import {
   HelpCircle
 } from 'lucide-react';
 import Sidebar from '../Sidebar.jsx';
+import { fetchWithAuth } from '../users/authFetch.js';
 import './fees.css';
 
 // Module-specific Laravel API URL with environment variable support (Port 8001)
-const LARAVEL_API_BASE = (import.meta.env.VITE_LARAVEL_API_URL || 'http://localhost:8001/api').replace(/\/+$/, '');
+const LARAVEL_API_BASE = (import.meta.env.VITE_LARAVEL_API_URL || '/fees-api').replace(/\/+$/, '');
 
 // Format currency in Sri Lankan Rupees
 const formatCurrency = (amount) => {
@@ -112,7 +113,7 @@ export default function MonthlyFees({ onLogout, userRole }) {
         page: currentPage.toString(),
         per_page: '15'
       });
-      const res = await fetch(`${LARAVEL_API_BASE}/fees?${params.toString()}`, {
+      const res = await fetchWithAuth(`${LARAVEL_API_BASE}/fees?${params.toString()}`, {
         headers: apiHeaders
       });
       if (!res.ok) {
@@ -146,7 +147,7 @@ export default function MonthlyFees({ onLogout, userRole }) {
     setPreviewLoading(true);
     setFormError('');
     try {
-      const res = await fetch(`${LARAVEL_API_BASE}/fees/preview?period=${encodeURIComponent(period)}`, {
+      const res = await fetchWithAuth(`${LARAVEL_API_BASE}/fees/preview?period=${encodeURIComponent(period)}`, {
         headers: apiHeaders
       });
       if (!res.ok) {
@@ -203,7 +204,7 @@ export default function MonthlyFees({ onLogout, userRole }) {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${LARAVEL_API_BASE}/fees/generate`, {
+      const res = await fetchWithAuth(`${LARAVEL_API_BASE}/fees/generate`, {
         method: 'POST',
         headers: apiHeaders,
         body: JSON.stringify({
@@ -234,7 +235,7 @@ export default function MonthlyFees({ onLogout, userRole }) {
   // View Details Modal
   const openDetailsModal = async (feeId) => {
     try {
-      const res = await fetch(`${LARAVEL_API_BASE}/fees/${feeId}`, {
+      const res = await fetchWithAuth(`${LARAVEL_API_BASE}/fees/${feeId}`, {
         headers: apiHeaders
       });
       if (!res.ok) throw new Error('Unable to load fee details. Please try again.');

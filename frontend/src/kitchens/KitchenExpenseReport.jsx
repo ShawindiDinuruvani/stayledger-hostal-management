@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../Sidebar.jsx';
+import { fetchWithAuth } from '../users/authFetch.js';
 
 export default function KitchenExpenseReport({ onLogout, userRole }) {
     const [expenses, setExpenses] = useState([]);
 
     useEffect(() => {
-        fetch('http://localhost:8000/api/kitchens')
+        fetchWithAuth('/native-api/kitchens')
             .then(res => res.json())
             .then(data => {
                 if(data && !data.error) {

@@ -66,3 +66,42 @@ those changes before pulling/rebasing; do not force-reset the working tree.**
 - **PENDING:** API-level single sign-on across all three backends.
 - **PENDING:** end-to-end data operations in the team Monthly Fees / Allocations
   / Kitchens backends using real development data.
+
+
+## Verified Neon development-branch schema (2026-11-17)
+
+- Scoped authorized Neon project: `stayledger-hostel`, database `stayledger_db`.
+- Only branch `stayledger-user-access-dev` was updated, **not** `production`.
+- Development `public.users` initially had 0 accounts and a UNIQUE(email) index.
+- Applied additive changes to development branch inside a database transaction:
+  `role varchar(20) NOT NULL DEFAULT 'staff'`,
+  `is_active boolean NOT NULL DEFAULT true`,
+  and the `stayledger_users_role_check` admin/staff check.
+- Recorded the already reviewed additive migration name in the development branch's
+  migration table. Did not execute global Laravel migrations.
+- Re-read both branch schemas: development has new columns and CHECK; production
+  still does not. No user records were inserted or changed.
+
+## Central authentication integration implementation (review branch only)
+
+This PR proposes backend authorization integration **for teammate review**, not production deployment:
+
+- Central User Accounts Laravel exposes `POST /integration/verify` (session + CSRF)
+  and `GET /me`; both return fresh active-account information.
+- Native PHP Allocations/Kitchens API requests fail closed unless the central
+  session is verified. Mutations require the central Laravel CSRF token.
+- Monthly Fees Laravel middleware independently verifies the same session
+  and rejects expired/inactive sessions.
+- Vite routes requests through same-origin proxies (`/native-api`,
+  `/fees-api`, `/laravel`) and forwards credentials and CSRF.
+- This is three separately hosted processes: run User Accounts on port 8002,
+  native PHP on 8000, Monthly Fees on 8001 and Vite on 5173.
+  For server-side authorization set `STAYLEDGER_AUTH_URL` to the privately
+  reachable User Accounts service URL in both team backend environments.
+  Cross-service testing against real development data remains pending.
+- The old public database credential in `backend/db.php` must be removed and
+  rotated before deploying any backend changes.
+
+**Caution:** A passing standalone browser page-render test does not prove the
+entire cross-service API integration. CI runs independent isolated tests;
+review and test real inter-service API requests before rollout.
