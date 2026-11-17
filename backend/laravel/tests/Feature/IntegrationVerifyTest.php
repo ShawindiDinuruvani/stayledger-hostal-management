@@ -36,7 +36,7 @@ class IntegrationVerifyTest extends TestCase
             'is_active' => true,
         ]);
         $this->actingAs($user);
-        $user->update(['is_active' => false]);
+        $user->forceFill(['is_active' => false])->save();
 
         $this->postJson('/integration/verify')->assertUnauthorized();
     }
