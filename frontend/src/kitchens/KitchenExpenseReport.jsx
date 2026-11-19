@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../Sidebar.jsx';
+import { fetchWithAuth } from '../users/authFetch.js';
 
-export default function KitchenExpenseReport() {
+export default function KitchenExpenseReport({ onLogout, userRole }) {
     const [expenses, setExpenses] = useState([]);
 
     useEffect(() => {
-        fetch('http://localhost:8000/api/kitchens')
+        fetchWithAuth('/native-api/kitchens')
             .then(res => res.json())
             .then(data => {
                 if(data && !data.error) {
@@ -17,7 +18,7 @@ export default function KitchenExpenseReport() {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f9fafb', fontFamily: 'sans-serif' }}>
-            <Sidebar />
+            <Sidebar onLogout={onLogout} userRole={userRole} />
             
             <div style={{ flex: 1, padding: '32px', marginLeft: '250px' }}>
                 <div style={{ backgroundColor: '#135c38', color: 'white', padding: '32px', borderRadius: '12px', marginBottom: '24px' }}>

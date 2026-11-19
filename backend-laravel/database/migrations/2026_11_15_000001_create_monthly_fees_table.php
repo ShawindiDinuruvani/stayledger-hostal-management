@@ -13,6 +13,12 @@ return new class extends Migration
     public function up(): void
     {
         if (!Schema::hasTable('monthly_fees')) {
+            if (!Schema::hasTable('residents')) {
+                throw new \RuntimeException(
+                    "Prerequisite table 'residents' does not exist. Cannot create 'monthly_fees' without its required foreign key constraint to residents(resident_id). Please install the prerequisite residents schema first."
+                );
+            }
+
             Schema::create('monthly_fees', function (Blueprint $table) {
                 $table->id('fee_id');
                 $table->string('fee_code', 30)->unique();
@@ -32,13 +38,11 @@ return new class extends Migration
                 $table->index('resident_id', 'idx_monthly_fees_resident');
                 $table->index('status', 'idx_monthly_fees_status');
 
-                // Foreign key constraint if residents table exists
-                if (Schema::hasTable('residents')) {
-                    $table->foreign('resident_id')
-                        ->references('resident_id')
-                        ->on('residents')
-                        ->onDelete('restrict');
-                }
+                // Mandatory foreign key constraint to residents
+                $table->foreign('resident_id')
+                    ->references('resident_id')
+                    ->on('residents')
+                    ->onDelete('restrict');
             });
 
             // PostgreSQL CHECK constraint for billing period format and positive amount

@@ -1,28 +1,55 @@
-<?php
-// backend/db.php
 
-$DATABASE_URL = getenv('DATABASE_URL') ?: 'postgresql://stayledger_db_owner:npg_9iAEmaGHeKo1@ep-lingering-pine-b3dk5yfn-pooler.c-4.ap-southeast-1.aws.neon.tech:5432/stayledger_db?sslmode=require';
+<?php
+// Native PHP database connection.
+// Set DATABASE_URL in the private server environment.
+
+$databaseUrl = getenv('DATABASE_URL');
+
+if (!is_string($databaseUrl) || $databaseUrl === '') {
+    http_response_code(503);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'message' => 'Database connection is not configured.'
+    ]);
+    exit;
+}
 
 try {
-    $dbParts = parse_url($DATABASE_URL);
-    $host = $dbParts['host'];
-    $port = $dbParts['port'] ?? 5432;
-    $user = $dbParts['user'];
-    
-    $pass = isset($dbParts['pass']) ? urldecode($dbParts['pass']) : ''; 
-    $dbname = ltrim($dbParts['path'], '/');
+    $parts = parse_url($databaseUrl);
 
-   
-    $dsn = "pgsql:host={$host};port={$port};dbname={$dbname};sslmode=require";
+    if (!is_array($parts) ||
+        empty($parts['host']) ||
+        empty($parts['user']) ||
+        empty($parts['path'])) {
+        throw new RuntimeException(
+            'Invalid database connection configuration.'
+        );
+    }
 
-    
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => true,
+    $host = $parts['host'];
+    $port = (int) ($parts['port'] ?? 5432);
+    $name = ltrim($parts['path'], '/');
+    $user = urldecode($parts['user']);
+    $password = urldecode($parts['pass'] ?? '');
+
+    $pdo = new PDO(
+        "pgsql:host={$host};port={$port};dbname={$name};sslmode=require",
+        $user,
+        $password,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]
+    );
+
+} catch (Throwable $exception) {
+    error_log('StayLedger native PHP database connection failed.');
+
+    http_response_code(503);
+    header('Content-Type: application/json; charset=utf-8');
+
+    echo json_encode([
+        'message' => 'Database service unavailable.'
     ]);
-} catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['message' => 'Neon DB Error: ' . $e->getMessage()]);
     exit;
 }
