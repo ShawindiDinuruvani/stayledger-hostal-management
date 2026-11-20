@@ -1,11 +1,21 @@
 name: StayLedger User Access Tests
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/monthly-fees/**'
+      - 'backend/laravel/**'
+      - 'backend/index.php'
+      - 'backend/auth_guard.php'
+      - 'backend/db.php'
+      - 'frontend/**'
+      - '.github/workflows/user-access-tests.yml'
   push:
     branches: [Kulara, main]
     paths:
       - 'backend/laravel/**'
-      - 'backend-laravel/**'
+      - 'backend/monthly-fees/**'
       - 'backend/auth_guard.php'
       - 'backend/db.php'
       - 'backend/index.php'
@@ -215,10 +225,10 @@ jobs:
           tools: composer:v2
           coverage: none
       - name: Install Monthly Fees Laravel dependencies
-        working-directory: backend-laravel
+        working-directory: backend/monthly-fees
         run: composer install --prefer-dist --no-interaction --no-progress
       - name: Run central session middleware tests in isolation
-        working-directory: backend-laravel
+        working-directory: backend/monthly-fees
         env:
           APP_ENV: testing
           DB_CONNECTION: sqlite
