@@ -7,8 +7,8 @@
 -- PURPOSE & ARCHITECTURAL NOTE:
 -- - The primary runtime source of truth for Monthly Fee Management database
 --   schema and stored procedures is in Laravel migrations:
---     backend-laravel/database/migrations/2026_11_15_000001_create_monthly_fees_table.php
---     backend-laravel/database/migrations/2026_11_15_000002_create_monthly_fee_generation_routine.php
+--     backend/laravel/database/migrations/2026_11_15_000001_create_monthly_fees_table.php
+--     backend/laravel/database/migrations/2026_11_15_000002_create_monthly_fee_generation_routine.php
 -- - This file is maintained as a standalone SQL reference for direct PostgreSQL /
 --   ADBMS grading, manual psql inspection, and reference execution without the Laravel CLI.
 -- ============================================================================

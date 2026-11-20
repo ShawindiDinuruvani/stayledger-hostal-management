@@ -159,7 +159,7 @@ class MonthlyFeeApiTest extends TestCase
     {
         $response = $this->getJson('/api/fees');
         $response->assertStatus(401)
-                 ->assertJsonFragment(['integration_status' => 'AUTH_INTEGRATION_PENDING']);
+                 ->assertJsonFragment(['message' => 'Sign in to StayLedger before accessing monthly fees.']);
     }
 
     /**

@@ -14,10 +14,10 @@ vendor/
 /backend/storage/logs/*
 /backend/bootstrap/cache/*.php
 
-/backend-laravel/storage/logs/*
-/backend-laravel/bootstrap/cache/*.php
-/backend-laravel/database/*.sqlite
-/backend-laravel/database/*.sqlite-journal
+/backend/laravel/storage/logs/*
+/backend/laravel/bootstrap/cache/*.php
+/backend/laravel/database/*.sqlite
+/backend/laravel/database/*.sqlite-journal
 
 scratch/
 *.log

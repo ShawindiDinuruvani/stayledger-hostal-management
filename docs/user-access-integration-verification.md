@@ -20,7 +20,7 @@
 | `/#account` | `backend/laravel` (8002) | Laravel session |
 | `/#allocations` | native PHP `backend/index.php` (8000) | **No shared authentication yet** |
 | `/#kitchens` | native PHP `backend/index.php` (8000) | **No shared authentication yet** |
-| `/#fees` | `backend-laravel` (8001) | Own Laravel guard; rejects unauthenticated API calls |
+| `/#fees` | `backend/laravel` (8001) | Own Laravel guard; rejects unauthenticated API calls |
 
 **Do not treat hiding a page in React as API authorization.** A Laravel
 session established on port 8002 is not automatically available to the native

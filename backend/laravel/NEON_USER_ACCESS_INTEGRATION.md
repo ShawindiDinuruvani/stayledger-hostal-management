@@ -1,6 +1,6 @@
 # StayLedger User Accounts — PostgreSQL / Neon compatibility
 
-The StayLedger team has more than one backend (native PHP, `backend-laravel` and `backend/laravel`). Sharing a PostgreSQL database does **not** make their login sessions interoperable. Keep protected endpoints behind their own authorization checks until authentication is explicitly integrated between apps.
+The StayLedger team has more than one backend (native PHP and `backend/laravel`). Sharing a PostgreSQL database does **not** make their login sessions interoperable. Keep protected endpoints behind their own authorization checks until authentication is explicitly integrated between apps.
 
 ## Safe workflow
 
