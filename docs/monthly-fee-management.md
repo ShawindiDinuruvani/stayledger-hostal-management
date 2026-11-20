@@ -14,23 +14,23 @@ Under the agreed team allocation for the StayLedger ADBMS project, responsibilit
 
 | Team Member | Module Scope | Implementation Architecture | Default Port / Service URL |
 | :--- | :--- | :--- | :--- |
-| **S. Dinuruvani (36750)** | **Monthly Fee Management** | **Laravel 13 Application (`backend-laravel/`)** | **Port 8001 (`http://localhost:8001/api`)** |
+| **S. Dinuruvani (36750)** | **Monthly Fee Management** | **Laravel 13 Application (`backend/laravel/`)** | **Port 8001 (`http://localhost:8001/api`)** |
 | **A.K.S. Athukorala** | **User Accounts & Role-Based Access** | Native PHP Backend (`backend/`) | Port 8000 (`http://localhost:8000/api`) |
 | **H.D.T.A. Karunarathna** | **Payments & Outstanding Balances** | Native PHP Backend (`backend/`) | Port 8000 (`http://localhost:8000/api`) |
 | **N.L. Lekamge (36934)** | **Room Allocations, Transfers & Checkout** | Native PHP Backend (`backend/`) | Port 8000 (`http://localhost:8000/api`) |
 | **Teammate** | **Shared Kitchens & Expense Reports** | Native PHP Backend (`backend/`) | Port 8000 (`http://localhost:8000/api`) |
 
 ### Strict Architectural Boundaries
-1. **Isolated Laravel Application:** S. Dinuruvani's module is implemented in `backend-laravel/`, satisfying the mandatory course requirement to use Laravel without overwriting or breaking teammates' native PHP modules in `backend/`.
+1. **Isolated Laravel Application:** S. Dinuruvani's module is implemented in `backend/laravel/`, satisfying the mandatory course requirement to use Laravel without overwriting or breaking teammates' native PHP modules in `backend/`.
 2. **Zero Modification to Teammates' Code:** The checked-out native PHP backend (`backend/index.php`, `backend/controllers/`, `backend/database/stayledger_allocations_schema.sql`) remains completely intact (`git diff backend/` is 0).
 3. **No Unilateral Branching or Commits:** All work is conducted strictly on branch `oviya`. No commits, pushes, merges, deployments, or pull requests are executed.
 
 ### 1.2 Backend Folder Structure & Unification Scope
 - **`backend/` (Native PHP Application):** Contains the original team backend router and native PHP PDO controllers for teammates' modules (Room Allocations by N.L. Lekamge, Shared Kitchens, etc.) running on Port 8000.
-- **`backend-laravel/` (Laravel 13 Application):** Contains S. Dinuruvani's Monthly Fee Management module running on Port 8001.
+- **`backend/laravel/` (Laravel 13 Application):** Contains S. Dinuruvani's Monthly Fee Management module running on Port 8001.
 - **Why Both Directories Exist:** Combining both applications into one Laravel application would require migrating and rewriting teammates' native PHP controllers, modifying their routes, and changing their code. That refactoring is outside Dinuruvani's module scope and would disrupt teammates' working code. Folder renaming alone does not unify the codebase; a single unified Laravel backend requires a coordinated team-wide migration.
 - **Database Migrations Source of Truth:**
-  - Authoritative runtime migrations: `backend-laravel/database/migrations/` (`2026_11_15_000001_create_monthly_fees_table.php` and `2026_11_15_000002_create_monthly_fee_generation_routine.php`).
+  - Authoritative runtime migrations: `backend/laravel/database/migrations/` (`2026_11_15_000001_create_monthly_fees_table.php` and `2026_11_15_000002_create_monthly_fee_generation_routine.php`).
   - Standalone SQL reference: `backend/database/stayledger_monthly_fees_schema.sql` is maintained purely for direct PostgreSQL / ADBMS course submission inspection.
 - **Cleaned Obsolete Files:** No obsolete copies of Monthly Fee controllers exist in `backend/`. A recoverable backup of the initial exploratory native PHP controller is safely archived in scratch storage (`scratch/backup-native-php/`).
 
@@ -43,7 +43,7 @@ To allow independent operation without port collisions, the following routing ar
 | Component | Working Directory | Runtime Command | Local Port | Base URL |
 | :--- | :--- | :--- | :--- | :--- |
 | **Teammates' Backend** | `backend/` | `php -S localhost:8000 -t public` | `8000` | `http://localhost:8000/api` |
-| **Monthly Fees Backend** | `backend-laravel/` | `php artisan serve --port=8001` | `8001` | `http://localhost:8001/api` |
+| **Monthly Fees Backend** | `backend/laravel/` | `php artisan serve --port=8001` | `8001` | `http://localhost:8001/api` |
 | **Frontend Application** | `frontend/` | `npm run dev` | `5173` | Browser UI (`http://localhost:5173/#fees`) |
 
 ### Frontend Integration Isolation
@@ -85,7 +85,7 @@ $$\text{Stay Overlap Condition: } \quad \text{ra.start\_date} \le D_{\text{end}}
 - In strict adherence to scope, Dinuruvani's module does **not** implement or duplicate teammate Athukorala's authentication system, nor does it invent arbitrary mock tokens or runtime backdoors.
 
 ### 4.2 Middleware Implementation (`EnsureAuthenticated`)
-- Located in [backend-laravel/app/Http/Middleware/EnsureAuthenticated.php](file:///f:/project/StayLedger-Dinuruvani/backend-laravel/app/Http/Middleware/EnsureAuthenticated.php).
+- Located in [backend/laravel/app/Http/Middleware/EnsureAuthenticated.php](file:///f:/project/StayLedger-Dinuruvani/backend/laravel/app/Http/Middleware/EnsureAuthenticated.php).
 - Custom `X-Test-Authorization` header parsing has been **completely removed**.
 - Relies strictly on standard Laravel authentication (`$request->user()`):
   ```php
@@ -122,7 +122,7 @@ Until teammate A.K.S. Athukorala delivers and integrates the authentication prov
 All database and procedural verification was conducted against an isolated PostgreSQL 17.11 instance running locally on Port **5433** (`stayledger_isolated_test`).
 
 ### 5.3 Stored Procedure & Routine Architecture
-- **Routine Migration:** [backend-laravel/database/migrations/2026_11_15_000002_create_monthly_fee_generation_routine.php](file:///f:/project/StayLedger-Dinuruvani/backend-laravel/database/migrations/2026_11_15_000002_create_monthly_fee_generation_routine.php)
+- **Routine Migration:** [backend/laravel/database/migrations/2026_11_15_000002_create_monthly_fee_generation_routine.php](file:///f:/project/StayLedger-Dinuruvani/backend/laravel/database/migrations/2026_11_15_000002_create_monthly_fee_generation_routine.php)
 - **Reference Script:** [backend/database/stayledger_monthly_fees_schema.sql](file:///f:/project/StayLedger-Dinuruvani/backend/database/stayledger_monthly_fees_schema.sql)
 - **Stored Procedure (`sp_generate_monthly_fees`):**
   - Inputs: `p_billing_period` (VARCHAR), `p_amount` (NUMERIC), `p_due_date` (DATE).
@@ -139,7 +139,7 @@ All database and procedural verification was conducted against an isolated Postg
 The test suite is partitioned into two distinct categories:
 
 ### 6.1 Category A: Laravel Unit & Feature Tests (SQLite In-Memory)
-- **Working Directory:** `backend-laravel/`
+- **Working Directory:** `backend/laravel/`
 - **Command:** `php -d extension=pdo_sqlite -d extension=pdo_pgsql vendor/bin/phpunit --testdox`
 - **Result:** **13 Passed, 1 Skipped (100% of runnable tests passed)**
 
@@ -168,7 +168,7 @@ Postgres Stored Procedure Integration (Tests\Feature\PostgresStoredProcedureInte
 ```
 
 ### 6.2 Category B: Laravel-to-PostgreSQL Real Integration Tests
-- **Working Directory:** `backend-laravel/`
+- **Working Directory:** `backend/laravel/`
 - **Database:** Real PostgreSQL 17.11 on `127.0.0.1:5433/stayledger_isolated_test`
 - **Command:** `php -d extension=pdo_pgsql -d extension=pdo_sqlite tests/run_laravel_postgres_integration_tests.php`
 - **Result:** **7 / 7 Passed (100%)**
@@ -194,13 +194,13 @@ Postgres Stored Procedure Integration (Tests\Feature\PostgresStoredProcedureInte
 ## 7. Repository Hygiene & Git Audit
 
 1. **Gitignore Protection:**
-   - Root `.gitignore` and `backend-laravel/.gitignore` strictly ignore all `.env`, `.env.*` (preserving only committed `.env.example`), logs, scratch files, SQLite databases, `node_modules/`, and `vendor/`.
+   - Root `.gitignore` and `backend/laravel/.gitignore` strictly ignore all `.env`, `.env.*` (preserving only committed `.env.example`), logs, scratch files, SQLite databases, `node_modules/`, and `vendor/`.
 2. **Untracked / Clean Tree Audit:**
    - `backend/` directory has **0 modified files** (`git diff backend/` is completely empty).
    - Only Dinuruvani's authorized module files exist:
-     - `backend-laravel/` (isolated Laravel backend)
+     - `backend/laravel/` (isolated Laravel backend)
      - `frontend/src/fees/` (Monthly Fees UI component)
-     - `frontend/.env.example` & `backend-laravel/.env.example` (safe templates)
+     - `frontend/.env.example` & `backend/laravel/.env.example` (safe templates)
      - `docs/monthly-fee-management.md` (this specification document)
      - `backend/database/stayledger_monthly_fees_schema.sql` (reference schema)
      - `frontend/src/main.jsx` (route registration for `#fees`)
@@ -221,7 +221,7 @@ Direct read-only inspection of the team Neon database (`ep-lingering-pine-b3dk5y
 
 ### 8.2 Additive Repair Migration
 To establish strict referential integrity without deleting data or rebuilding existing structures, an additive repair migration is prepared:
-- **File:** `backend-laravel/database/migrations/2026_11_15_000003_add_residents_foreign_key_to_monthly_fees_table.php`
+- **File:** `backend/laravel/database/migrations/2026_11_15_000003_add_residents_foreign_key_to_monthly_fees_table.php`
 - **Safeguards Enforced:**
   1. **Prerequisite Check:** Explicitly verifies `Schema::hasTable('residents')`. If missing, execution halts safely with a descriptive message rather than silently skipping the constraint.
   2. **Type Compatibility Check:** Asserts `residents.resident_id` has a primary key and compatible integer type matching `monthly_fees.resident_id`.
@@ -234,13 +234,13 @@ Once teammate N.L. Lekamge restores/creates the allocation and resident tables o
 
 1. **Verify `residents` exists on Neon:**
    ```powershell
-   php -d extension=pdo_pgsql -r "require 'backend-laravel/vendor/autoload.php'; \$app = require_once 'backend-laravel/bootstrap/app.php'; \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); var_dump(Illuminate\Support\Facades\Schema::connection('pgsql')->hasTable('residents'));"
+   php -d extension=pdo_pgsql -r "require 'backend/laravel/vendor/autoload.php'; \$app = require_once 'backend/laravel/bootstrap/app.php'; \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); var_dump(Illuminate\Support\Facades\Schema::connection('pgsql')->hasTable('residents'));"
    ```
 2. **Execute only the additive repair migration:**
    ```powershell
-   php -d extension=pdo_pgsql backend-laravel/artisan migrate --database=pgsql --path=database/migrations/2026_11_15_000003_add_residents_foreign_key_to_monthly_fees_table.php
+   php -d extension=pdo_pgsql backend/laravel/artisan migrate --database=pgsql --path=database/migrations/2026_11_15_000003_add_residents_foreign_key_to_monthly_fees_table.php
    ```
 3. **Verify attached constraint on Neon (read-only):**
    ```powershell
-   php -d extension=pdo_pgsql -r "require 'backend-laravel/vendor/autoload.php'; \$app = require_once 'backend-laravel/bootstrap/app.php'; \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); print_r(Illuminate\Support\Facades\DB::connection('pgsql')->select(\"SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'monthly_fees'::regclass AND contype = 'f'\"));"
+   php -d extension=pdo_pgsql -r "require 'backend/laravel/vendor/autoload.php'; \$app = require_once 'backend/laravel/bootstrap/app.php'; \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); print_r(Illuminate\Support\Facades\DB::connection('pgsql')->select(\"SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'monthly_fees'::regclass AND contype = 'f'\"));"
    ```

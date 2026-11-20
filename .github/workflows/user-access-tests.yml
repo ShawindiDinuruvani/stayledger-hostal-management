@@ -5,7 +5,6 @@ on:
     branches: [Kulara, main]
     paths:
       - 'backend/laravel/**'
-      - 'backend-laravel/**'
       - 'backend/auth_guard.php'
       - 'backend/db.php'
       - 'backend/index.php'
@@ -215,10 +214,10 @@ jobs:
           tools: composer:v2
           coverage: none
       - name: Install Monthly Fees Laravel dependencies
-        working-directory: backend-laravel
+        working-directory: backend/laravel
         run: composer install --prefer-dist --no-interaction --no-progress
       - name: Run central session middleware tests in isolation
-        working-directory: backend-laravel
+        working-directory: backend/laravel
         env:
           APP_ENV: testing
           DB_CONNECTION: sqlite
