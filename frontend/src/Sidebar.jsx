@@ -17,11 +17,11 @@ import {
 } from 'lucide-react';
 
 export default function Sidebar({ onLogout, userRole = 'admin' }) {
-  // දැනට සිටින පිටුවේ URL hash එක තබා ගැනීම (මුලින්ම එනවිට hash එකක් නැත්නම් default එකක් දීම)
+
   const [currentRoute, setCurrentRoute] = useState(window.location.hash || '#allocations');
 
   useEffect(() => {
-    // පිටුව මාරු වන විට Sidebar එකට එය දැනුම් දීම
+    
     const handleHashChange = () => {
       setCurrentRoute(window.location.hash);
     };
@@ -48,9 +48,9 @@ export default function Sidebar({ onLogout, userRole = 'admin' }) {
 
       <div className="sl-nav-label">WORKSPACE</div>
       <nav className="sl-nav">
-        <a href="#dashboard" className={`sl-nav-item ${currentRoute === '#dashboard' ? 'active' : ''}`}>
-          <LayoutDashboard size={17} /><span>Dashboard</span>
-        </a>
+       <a href="#dashboard" className={`sl-nav-item ${currentRoute === '#dashboard' ? 'active' : ''}`}>
+    <LayoutDashboard size={17} /><span>Dashboard</span>
+  </a>
         <a href="#residents" className={`sl-nav-item ${currentRoute === '#residents' ? 'active' : ''}`}>
           <Users size={17} /><span>Residents</span><small className="sl-nav-badge">60</small>
         </a>

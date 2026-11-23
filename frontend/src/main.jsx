@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 
 import Login from './users/Login.jsx';
+import Dashboard from './dashboard/Dashboard.jsx';
 import RoomAllocations from './allocations/RoomAllocations.jsx';
 import KitchenExpenseReport from './kitchens/KitchenExpenseReport.jsx';
 import Expenses from './expenses/Expenses.jsx';
@@ -343,6 +344,11 @@ function App() {
   // Expenses management - Tharani module
   if (page === '#expenses') {
     return <Expenses />;
+  }
+
+  // dashboard management - Tharani module
+  if (page === '#dashboard') {
+    return <Dashboard />;
   }
 
   // Default room allocations
