@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use Exception;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class PostgresStoredProcedureIntegrationTest extends TestCase
@@ -24,9 +23,10 @@ class PostgresStoredProcedureIntegrationTest extends TestCase
         }
 
         // Ensure clean schema state independent of earlier RefreshDatabase tests
-        Schema::dropIfExists('monthly_fees');
-        Schema::dropIfExists('room_allocations');
-        Schema::dropIfExists('residents');
+        DB::statement('DROP VIEW IF EXISTS vw_monthly_fee_summary CASCADE');
+        DB::statement('DROP TABLE IF EXISTS monthly_fees CASCADE');
+        DB::statement('DROP TABLE IF EXISTS room_allocations CASCADE');
+        DB::statement('DROP TABLE IF EXISTS residents CASCADE');
         DB::unprepared(file_get_contents(database_path('stayledger_monthly_fees_schema.sql')));
 
         // 1. Ensure test residents exist
@@ -42,17 +42,17 @@ class PostgresStoredProcedureIntegrationTest extends TestCase
         $result = DB::select('SELECT * FROM fn_generate_monthly_fees(?, ?, ?)', ['2026-11', 18000.00, '2026-11-15']);
         $this->assertNotEmpty($result);
 
-        $row = (array) $result[0];
-        $this->assertGreaterThanOrEqual(2, $row['created_count']);
-        $this->assertEquals(0, $row['skipped_count']);
-        $this->assertArrayHasKey('blocked_count', $row);
+        $row = (array)$result[0];
+        $this->assertGreaterThanOrEqual(2,$row['created_count']);
+        $this->assertEquals(0,$row['skipped_count']);
+        $this->assertArrayHasKey('blocked_count',$row);
 
         // 3. Repeated generation must skip duplicates (idempotency)
         $repeatResult = DB::select('SELECT * FROM fn_generate_monthly_fees(?, ?, ?)', ['2026-11', 18000.00, '2026-11-15']);
-        $repeatRow = (array) $repeatResult[0];
-        $this->assertEquals(0, $repeatRow['created_count']);
-        $this->assertGreaterThanOrEqual(2, $repeatRow['skipped_count']);
-        $this->assertArrayHasKey('blocked_count', $repeatRow);
+        $repeatRow = (array)$repeatResult[0];
+        $this->assertEquals(0,$repeatRow['created_count']);
+        $this->assertGreaterThanOrEqual(2,$repeatRow['skipped_count']);
+        $this->assertArrayHasKey('blocked_count',$repeatRow);
 
         // 4. Test PL/pgSQL validation on negative amount
         $this->expectException(Exception::class);
