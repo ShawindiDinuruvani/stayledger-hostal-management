@@ -33,16 +33,25 @@ class PostgresStoredProcedureIntegrationTest extends TestCase
         DB::statement('CREATE TABLE floors (floor_id SERIAL PRIMARY KEY, floor_name VARCHAR(50) UNIQUE)');
         DB::statement('CREATE TABLE rooms (room_id SERIAL PRIMARY KEY, room_number VARCHAR(10) UNIQUE, floor_id INT)');
         DB::statement("CREATE TABLE residents (resident_id SERIAL PRIMARY KEY, resident_code VARCHAR(20) UNIQUE, full_name VARCHAR(100), email VARCHAR(100) UNIQUE, phone VARCHAR(20), status VARCHAR(20) DEFAULT 'ACTIVE', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+        DB::statement("CREATE TABLE room_allocations (allocation_id SERIAL PRIMARY KEY, allocation_code VARCHAR(20) UNIQUE, resident_id INT, room_id INT, start_date DATE, end_date DATE NULL, status VARCHAR(20) DEFAULT 'Active')");
 
         DB::unprepared(file_get_contents(database_path('stayledger_monthly_fees_schema.sql')));
 
-        // 1. Ensure test residents exist
+        // 1. Seed reference floor, room, test residents, and full-month allocations
+        DB::statement("INSERT INTO floors (floor_id, floor_name) VALUES (1, 'PG Test Floor')");
+        DB::statement("INSERT INTO rooms (room_id, room_number, floor_id) VALUES (1, 'PG-101', 1)");
         DB::statement("
-            INSERT INTO residents (resident_code, full_name, email, status)
+            INSERT INTO residents (resident_id, resident_code, full_name, email, status)
             VALUES 
-                ('PG-RES-01', 'Postgres Resident 1', 'pg1@test.com', 'ACTIVE'),
-                ('PG-RES-02', 'Postgres Resident 2', 'pg2@test.com', 'ACTIVE')
+                (1, 'PG-RES-01', 'Postgres Resident 1', 'pg1@test.com', 'ACTIVE'),
+                (2, 'PG-RES-02', 'Postgres Resident 2', 'pg2@test.com', 'ACTIVE')
             ON CONFLICT (resident_code) DO NOTHING;
+        ");
+        DB::statement("
+            INSERT INTO room_allocations (allocation_code, resident_id, room_id, start_date, end_date, status)
+            VALUES
+                ('PG-ALLOC-01', 1, 1, '2026-10-01', NULL, 'Active'),
+                ('PG-ALLOC-02', 2, 1, '2026-10-01', NULL, 'Active');
         ");
 
         // 2. Execute the PL/pgSQL routine
