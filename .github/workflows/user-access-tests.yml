@@ -118,7 +118,7 @@ jobs:
       - name: Load prerequisite PostgreSQL schemas
         working-directory: backend
         run: |
-          php -r "require 'vendor/autoload.php'; \$app = require 'bootstrap/app.php'; \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); \$pdo = Illuminate\Support\Facades\DB::connection()->getPdo(); foreach (['database/stayledger_allocations_schema.sql', 'database/stayledger_expenses_schema.sql', 'database/stayledger_kitchen.sql'] as \$f) { \$pdo->exec(file_get_contents(\$f)); }"
+          php -r "require 'vendor/autoload.php'; \$app = require 'bootstrap/app.php'; \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); \$pdo = Illuminate\Support\Facades\DB::connection()->getPdo(); foreach (['database/stayledger_expenses_schema.sql', 'database/stayledger_kitchen.sql'] as \$f) { \$pdo->exec(file_get_contents(\$f)); }"
       - name: Run Laravel feature tests with PostgreSQL 16
         working-directory: backend
         run: php artisan test
