@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Support\Facades\DB;
-use Tests\TestCase;
 use Exception;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Tests\TestCase;
 
 class PostgresStoredProcedureIntegrationTest extends TestCase
 {
@@ -21,6 +22,12 @@ class PostgresStoredProcedureIntegrationTest extends TestCase
                 'Set DB_CONNECTION=pgsql with an isolated test database to execute this test.'
             );
         }
+
+        // Ensure clean schema state independent of earlier RefreshDatabase tests
+        Schema::dropIfExists('monthly_fees');
+        Schema::dropIfExists('room_allocations');
+        Schema::dropIfExists('residents');
+        DB::unprepared(file_get_contents(database_path('stayledger_monthly_fees_schema.sql')));
 
         // 1. Ensure test residents exist
         DB::statement("
