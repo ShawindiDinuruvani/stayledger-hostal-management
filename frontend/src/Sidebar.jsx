@@ -21,9 +21,8 @@ export default function Sidebar({ onLogout, userRole = 'admin' }) {
   const [currentRoute, setCurrentRoute] = useState(window.location.hash || '#allocations');
 
   useEffect(() => {
-    
     const handleHashChange = () => {
-      setCurrentRoute(window.location.hash);
+      setCurrentRoute(window.location.hash || '#allocations');
     };
     
     window.addEventListener('hashchange', handleHashChange);
@@ -48,9 +47,9 @@ export default function Sidebar({ onLogout, userRole = 'admin' }) {
 
       <div className="sl-nav-label">WORKSPACE</div>
       <nav className="sl-nav">
-       <a href="#dashboard" className={`sl-nav-item ${currentRoute === '#dashboard' ? 'active' : ''}`}>
-    <LayoutDashboard size={17} /><span>Dashboard</span>
-  </a>
+        <a href="#dashboard" className={`sl-nav-item ${currentRoute === '#dashboard' ? 'active' : ''}`}>
+           <LayoutDashboard size={17} /><span>Dashboard</span>
+        </a>
         <a href="#residents" className={`sl-nav-item ${currentRoute === '#residents' ? 'active' : ''}`}>
           <Users size={17} /><span>Residents</span><small className="sl-nav-badge">60</small>
         </a>
@@ -79,15 +78,15 @@ export default function Sidebar({ onLogout, userRole = 'admin' }) {
 
       {userRole === 'admin' && (
         <>
-      <div className="sl-nav-label" style={{ marginTop: 24 }}>ADMINISTRATION</div>
-      <nav className="sl-nav">
-        <a href="#audit" className={`sl-nav-item ${currentRoute === '#audit' ? 'active' : ''}`}>
-          <ShieldCheck size={17} /><span>Audit history</span>
-        </a>
-        <a href="#users" className={`sl-nav-item ${currentRoute === '#users' ? 'active' : ''}`}>
-          <UserCheck size={17} /><span>Users & access</span>
-        </a>
-      </nav>
+          <div className="sl-nav-label" style={{ marginTop: 24 }}>ADMINISTRATION</div>
+          <nav className="sl-nav">
+            <a href="#audit" className={`sl-nav-item ${currentRoute === '#audit' ? 'active' : ''}`}>
+              <ShieldCheck size={17} /><span>Audit history</span>
+            </a>
+            <a href="#users" className={`sl-nav-item ${currentRoute === '#users' ? 'active' : ''}`}>
+              <UserCheck size={17} /><span>Users & access</span>
+            </a>
+          </nav>
         </>
       )}
 

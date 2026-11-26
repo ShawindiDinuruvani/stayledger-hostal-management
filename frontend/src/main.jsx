@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 
@@ -11,10 +10,12 @@ import MonthlyFees from './fees/MonthlyFees.jsx';
 import UsersAccess from './users/UsersAccess.jsx';
 import AccountSettings from './users/AccountSettings.jsx';
 
+function getHashPage() {
+  return window.location.hash || '#allocations';
+}
+
 function App() {
-  const [page, setPage] = useState(
-    window.location.hash || '#allocations'
-  );
+  const [page, setPage] = useState(getHashPage);
 
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
@@ -25,18 +26,14 @@ function App() {
   const [staffLoading, setStaffLoading] = useState(false);
   const [staffError, setStaffError] = useState('');
 
-  // Handle login
   function handleLogin(loggedInUser) {
     setUser(loggedInUser);
     setAuthError('');
-
-    window.location.hash =
-      loggedInUser.role === 'admin'
-        ? '#users'
-        : '#allocations';
+    const nextHash = loggedInUser.role === 'admin' ? '#users' : '#allocations';
+    window.location.hash = nextHash;
+    setPage(nextHash);
   }
 
-  // Handle logout
   async function handleLogout() {
     try {
       const csrfResponse = await fetch('/laravel/csrf-token', {
@@ -50,8 +47,7 @@ function App() {
         throw new Error('Could not get CSRF token.');
       }
 
-      const { csrf_token: csrfToken } =
-        await csrfResponse.json();
+      const { csrf_token: csrfToken } = await csrfResponse.json();
 
       if (!csrfToken) {
         throw new Error('CSRF token missing.');
@@ -73,30 +69,27 @@ function App() {
       setUser(null);
       setStaffUsers([]);
       setStaffError('');
-
       window.location.hash = '#login';
-
+      setPage('#login');
     } catch (error) {
-      window.alert(
-        error.message || 'Could not log out. Please retry.'
-      );
+      window.alert(error.message || 'Could not log out. Please retry.');
     }
   }
 
-  // Handle page navigation
   useEffect(() => {
-    function onHashChange() {
-      setPage(window.location.hash || '#allocations');
+    function syncRoute() {
+      setPage(getHashPage());
     }
 
-    window.addEventListener('hashchange', onHashChange);
+    window.addEventListener('hashchange', syncRoute);
+    window.addEventListener('popstate', syncRoute);
 
     return () => {
-      window.removeEventListener('hashchange', onHashChange);
+      window.removeEventListener('hashchange', syncRoute);
+      window.removeEventListener('popstate', syncRoute);
     };
   }, []);
 
-  // Check authentication session
   useEffect(() => {
     let cancelled = false;
 
@@ -128,14 +121,10 @@ function App() {
         if (!cancelled) {
           setUser(data.user || null);
         }
-
       } catch (error) {
         if (!cancelled) {
-          setAuthError(
-            error.message || 'Backend connection failed.'
-          );
+          setAuthError(error.message || 'Backend connection failed.');
         }
-
       } finally {
         if (!cancelled) {
           setChecking(false);
@@ -150,7 +139,6 @@ function App() {
     };
   }, [retry]);
 
-  // Load staff users for admin
   useEffect(() => {
     if (page !== '#users' || user?.role !== 'admin') {
       return;
@@ -176,29 +164,22 @@ function App() {
           if (!cancelled) {
             setUser(null);
             window.location.hash = '#login';
+            setPage('#login');
           }
           return;
         }
 
         if (!response.ok) {
-          throw new Error(
-            data.message || 'Unable to load staff accounts.'
-          );
+          throw new Error(data.message || 'Unable to load staff accounts.');
         }
 
         if (!cancelled) {
-          setStaffUsers(
-            Array.isArray(data.users) ? data.users : []
-          );
+          setStaffUsers(Array.isArray(data.users) ? data.users : []);
         }
-
       } catch (error) {
         if (!cancelled) {
-          setStaffError(
-            error.message || 'Unable to load users.'
-          );
+          setStaffError(error.message || 'Unable to load users.');
         }
-
       } finally {
         if (!cancelled) {
           setStaffLoading(false);
@@ -213,7 +194,6 @@ function App() {
     };
   }, [page, user?.id, user?.role]);
 
-  // Loading screen
   if (checking) {
     return (
       <main style={{ padding: 40 }} role="status">
@@ -222,33 +202,22 @@ function App() {
     );
   }
 
-  // Authentication error
   if (authError) {
     return (
       <main style={{ padding: 40, textAlign: 'center' }}>
         <p role="alert">{authError}</p>
-
-        <p>
-          Check that the Laravel backend is running
-          on port 8002.
-        </p>
-
-        <button
-          type="button"
-          onClick={() => setRetry(value => value + 1)}
-        >
+        <p>Check that the Laravel backend is running on port 8002.</p>
+        <button type="button" onClick={() => setRetry(value => value + 1)}>
           Retry Connection
         </button>
       </main>
     );
   }
 
-  // Login page
   if (page === '#login' || !user) {
     return <Login onLogin={handleLogin} />;
   }
 
-  // Account settings
   if (page === '#account') {
     return (
       <AccountSettings
@@ -258,20 +227,18 @@ function App() {
           setUser(null);
           setStaffUsers([]);
           window.location.hash = '#login';
+          setPage('#login');
         }}
       />
     );
   }
 
-  // Users and access management
   if (page === '#users') {
     if (user.role !== 'admin') {
       return (
         <main style={{ padding: 40 }}>
           <p role="alert">Admin access required.</p>
-          <a href="#allocations">
-            Return to workspace
-          </a>
+          <a href="#allocations">Return to workspace</a>
         </main>
       );
     }
@@ -288,11 +255,7 @@ function App() {
       return (
         <main style={{ padding: 40 }}>
           <p role="alert">{staffError}</p>
-
-          <button
-            type="button"
-            onClick={() => setRetry(value => value + 1)}
-          >
+          <button type="button" onClick={() => setRetry(value => value + 1)}>
             Reconnect
           </button>
         </main>
@@ -304,16 +267,11 @@ function App() {
         users={staffUsers}
         currentUser={user}
         onStaffCreated={created => {
-          setStaffUsers(previous => [
-            ...previous,
-            created,
-          ]);
+          setStaffUsers(previous => [...previous, created]);
         }}
         onStaffUpdated={updated => {
           setStaffUsers(previous =>
-            previous.map(item =>
-              item.id === updated.id ? updated : item
-            )
+            previous.map(item => (item.id === updated.id ? updated : item))
           );
         }}
         onLogout={handleLogout}
@@ -321,49 +279,26 @@ function App() {
     );
   }
 
-  // Kitchen management
   if (page === '#kitchens') {
-    return (
-      <KitchenExpenseReport
-        onLogout={handleLogout}
-        userRole={user.role}
-      />
-    );
+    return <KitchenExpenseReport onLogout={handleLogout} userRole={user.role} />;
   }
 
-  // Monthly fee management
   if (page === '#fees') {
-    return (
-      <MonthlyFees
-        onLogout={handleLogout}
-        userRole={user.role}
-      />
-    );
+    return <MonthlyFees onLogout={handleLogout} userRole={user.role} />;
   }
 
-  // Expenses management - Tharani module
   if (page === '#expenses') {
-    return <Expenses />;
+    return <Expenses onLogout={handleLogout} userRole={user.role} />;
   }
 
-  // dashboard management - Tharani module
   if (page === '#dashboard') {
-    return <Dashboard />;
+    return <Dashboard onLogout={handleLogout} userRole={user.role} />;
   }
 
-  // Default room allocations
-  return (
-    <RoomAllocations
-      onLogout={handleLogout}
-      userRole={user.role}
-    />
-  );
+  return <RoomAllocations onLogout={handleLogout} userRole={user.role} />;
 }
 
-// Render React application
-ReactDOM.createRoot(
-  document.getElementById('root')
-).render(
+ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>

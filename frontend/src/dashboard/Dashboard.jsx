@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import Sidebar from "../Sidebar.jsx";
 
 const API_BASE = "/api"; // Uses same-origin Vite proxy to backend
 
-export default function Dashboard() {
+export default function Dashboard({ onLogout, userRole = "admin" }) {
   const [fromDate, setFromDate] = useState("2026-11-01");
   const [toDate, setToDate] = useState("2026-11-30");
   const [activeTab, setActiveTab] = useState("overview"); // overview | monthly | explain
@@ -95,293 +96,297 @@ export default function Dashboard() {
     });
 
   return (
-    <div style={styles.page}>
-      {/* Top Breadcrumb */}
-      <div style={styles.breadcrumb}>
-        <span>Workspace</span>
-        <span style={styles.breadcrumbSep}>/</span>
-        <span style={styles.breadcrumbActive}>Dashboard, Reports & Performance</span>
-      </div>
+    <div className="sl-shell">
+      <Sidebar onLogout={onLogout} userRole={userRole} />
 
-      {/* Hero Banner (Matches StayLedger Forest Green Banner) */}
-      <div style={styles.banner}>
-        <div>
-          <h1 style={styles.bannerTitle}>Real-time hostel operations & financial ledger.</h1>
-          <p style={styles.bannerSubtitle}>
-            Track bed occupancy, unpaid monthly fees, reconciled income vs. expenses, and SQL query performance.
-          </p>
-        </div>
-        <div style={styles.bannerPill}>Views • Indexes • EXPLAIN</div>
-      </div>
-
-      {/* Section Header + Filter Controls */}
-      <div style={styles.sectionHeaderRow}>
-        <div>
-          <h2 style={styles.sectionTitle}>Executive Overview & Reconciliation</h2>
-          <p style={styles.sectionSubtitle}>
-            Filter by date range to reconcile income, expenses, and net balance.
-          </p>
+      <div className="sl-main" style={styles.page}>
+        {/* Top Breadcrumb */}
+        <div style={styles.breadcrumb}>
+          <span>Workspace</span>
+          <span style={styles.breadcrumbSep}>/</span>
+          <span style={styles.breadcrumbActive}>Dashboard, Reports & Performance</span>
         </div>
 
-        <div style={styles.controlsBar}>
-          <label style={styles.dateField}>
-            <span style={styles.dateLabel}>From</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              style={styles.dateInput}
-            />
-          </label>
-
-          <label style={styles.dateField}>
-            <span style={styles.dateLabel}>To</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              style={styles.dateInput}
-            />
-          </label>
-
-          <button
-            type="button"
-            onClick={() => fetchDashboardAndReports(fromDate, toDate)}
-            disabled={loading}
-            style={styles.primaryBtn}
-          >
-            {loading ? "Reconciling..." : "Apply & Reconcile"}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleRunExplain}
-            disabled={explaining}
-            style={styles.secondaryBtn}
-          >
-            {explaining ? "Analyzing..." : "EXPLAIN Query"}
-          </button>
-        </div>
-      </div>
-
-      {/* Alert Banner (Matches Soft Red Error Alert in Screenshot) */}
-      {error && (
-        <div style={styles.errorAlert}>
-          <span style={styles.errorIcon}>!</span>
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* 5 Metric Cards Grid */}
-      <div style={styles.kpiGrid}>
-        <div style={styles.kpiCard}>
-          <div style={styles.kpiTop}>
-            <span style={styles.kpiLabel}>Occupancy Rate</span>
-            <span style={styles.badgeGreen}>Live Capacity</span>
-          </div>
-          <div style={styles.kpiValue}>{occ.occupancy_rate}%</div>
-          <div style={styles.kpiMeta}>
-            {occ.occupied_beds} / {occ.total_capacity} beds occupied
-          </div>
-        </div>
-
-        <div style={styles.kpiCard}>
-          <div style={styles.kpiTop}>
-            <span style={styles.kpiLabel}>Unpaid Fees</span>
-            <span style={styles.badgeAmber}>Pending Dues</span>
-          </div>
-          <div style={styles.kpiValue}>{formatMoney(unpaid.unpaid_amount)}</div>
-          <div style={styles.kpiMeta}>{unpaid.unpaid_count} unpaid fee records</div>
-        </div>
-
-        <div style={styles.kpiCard}>
-          <div style={styles.kpiTop}>
-            <span style={styles.kpiLabel}>Monthly Income</span>
-            <span style={styles.badgeNeutral}>Payments</span>
-          </div>
-          <div style={styles.kpiValue}>{formatMoney(fin.monthly_income)}</div>
-          <div style={styles.kpiMeta}>
-            {fromDate} to {toDate}
-          </div>
-        </div>
-
-        <div style={styles.kpiCard}>
-          <div style={styles.kpiTop}>
-            <span style={styles.kpiLabel}>Monthly Expenses</span>
-            <span style={styles.badgeNeutral}>Outflow</span>
-          </div>
-          <div style={styles.kpiValue}>{formatMoney(fin.monthly_expense)}</div>
-          <div style={styles.kpiMeta}>
-            {fromDate} to {toDate}
-          </div>
-        </div>
-
-        <div style={styles.kpiCard}>
-          <div style={styles.kpiTop}>
-            <span style={styles.kpiLabel}>Reconciled Net</span>
-            <span style={styles.badgeGreen}>Balanced</span>
-          </div>
-          <div
-            style={{
-              ...styles.kpiValue,
-              color: Number(fin.net_reconciled) < 0 ? "#b91c1c" : "#0f172a",
-            }}
-          >
-            {formatMoney(fin.net_reconciled)}
-          </div>
-          <div style={styles.kpiMeta}>Income minus expenses</div>
-        </div>
-      </div>
-
-      {/* Sub-navigation Pills (Matches StayLedger Pill Tabs) */}
-      <div style={styles.tabRow}>
-        <button
-          type="button"
-          onClick={() => setActiveTab("overview")}
-          style={activeTab === "overview" ? styles.tabActive : styles.tabIdle}
-        >
-          Reconciliation Summary
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("monthly")}
-          style={activeTab === "monthly" ? styles.tabActive : styles.tabIdle}
-        >
-          Monthly View Report ({rows.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("explain")}
-          style={activeTab === "explain" ? styles.tabActive : styles.tabIdle}
-        >
-          EXPLAIN Performance Plan
-        </button>
-      </div>
-
-      {/* Tab Content Container */}
-      <div style={styles.panelCard}>
-        {activeTab === "overview" && (
+        {/* Hero Banner (Matches StayLedger Forest Green Banner) */}
+        <div style={styles.banner}>
           <div>
-            <h3 style={styles.panelTitle}>Totals Reconciliation Breakdown</h3>
-            <p style={styles.panelDesc}>
-              Cross-check filtered period totals against the SQL reporting view (<code>view_monthly_financial_summary</code>).
+            <h1 style={styles.bannerTitle}>Real-time hostel operations & financial ledger.</h1>
+            <p style={styles.bannerSubtitle}>
+              Track bed occupancy, unpaid monthly fees, reconciled income vs. expenses, and SQL query performance.
             </p>
+          </div>
+          <div style={styles.bannerPill}>Views • Indexes • EXPLAIN</div>
+        </div>
 
-            <div style={styles.tableWrap}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>Metric</th>
-                    <th style={styles.thRight}>Filtered Period</th>
-                    <th style={styles.thRight}>View Reconciled Total</th>
-                    <th style={styles.thRight}>Variance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style={styles.td}>Total Income</td>
-                    <td style={styles.tdRight}>{formatMoney(fin.monthly_income)}</td>
-                    <td style={styles.tdRight}>{formatMoney(reconciled.total_income)}</td>
-                    <td style={styles.tdRight}>
-                      {formatMoney(Number(fin.monthly_income) - Number(reconciled.total_income))}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style={styles.td}>Total Expenses</td>
-                    <td style={styles.tdRight}>{formatMoney(fin.monthly_expense)}</td>
-                    <td style={styles.tdRight}>{formatMoney(reconciled.total_expense)}</td>
-                    <td style={styles.tdRight}>
-                      {formatMoney(Number(fin.monthly_expense) - Number(reconciled.total_expense))}
-                    </td>
-                  </tr>
-                  <tr style={styles.totalRow}>
-                    <td style={styles.td}><strong>Net Balance</strong></td>
-                    <td style={styles.tdRight}><strong>{formatMoney(fin.net_reconciled)}</strong></td>
-                    <td style={styles.tdRight}><strong>{formatMoney(reconciled.net_balance)}</strong></td>
-                    <td style={styles.tdRight}>
-                      <strong>
-                        {formatMoney(Number(fin.net_reconciled) - Number(reconciled.net_balance))}
-                      </strong>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        {/* Section Header + Filter Controls */}
+        <div style={styles.sectionHeaderRow}>
+          <div>
+            <h2 style={styles.sectionTitle}>Executive Overview & Reconciliation</h2>
+            <p style={styles.sectionSubtitle}>
+              Filter by date range to reconcile income, expenses, and net balance.
+            </p>
+          </div>
+
+          <div style={styles.controlsBar}>
+            <label style={styles.dateField}>
+              <span style={styles.dateLabel}>From</span>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                style={styles.dateInput}
+              />
+            </label>
+
+            <label style={styles.dateField}>
+              <span style={styles.dateLabel}>To</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                style={styles.dateInput}
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={() => fetchDashboardAndReports(fromDate, toDate)}
+              disabled={loading}
+              style={styles.primaryBtn}
+            >
+              {loading ? "Reconciling..." : "Apply & Reconcile"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRunExplain}
+              disabled={explaining}
+              style={styles.secondaryBtn}
+            >
+              {explaining ? "Analyzing..." : "EXPLAIN Query"}
+            </button>
+          </div>
+        </div>
+
+        {/* Alert Banner (Matches Soft Red Error Alert in Screenshot) */}
+        {error && (
+          <div style={styles.errorAlert}>
+            <span style={styles.errorIcon}>!</span>
+            <span>{error}</span>
           </div>
         )}
 
-        {activeTab === "monthly" && (
-          <div>
-            <h3 style={styles.panelTitle}>Monthly Income & Expense Reporting View</h3>
-            <p style={styles.panelDesc}>
-              Aggregated monthly series returned from <code>view_monthly_financial_summary</code>.
-            </p>
+        {/* 5 Metric Cards Grid */}
+        <div style={styles.kpiGrid}>
+          <div style={styles.kpiCard}>
+            <div style={styles.kpiTop}>
+              <span style={styles.kpiLabel}>Occupancy Rate</span>
+              <span style={styles.badgeGreen}>Live Capacity</span>
+            </div>
+            <div style={styles.kpiValue}>{occ.occupancy_rate}%</div>
+            <div style={styles.kpiMeta}>
+              {occ.occupied_beds} / {occ.total_capacity} beds occupied
+            </div>
+          </div>
 
-            <div style={styles.tableWrap}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>Period (YYYY-MM)</th>
-                    <th style={styles.thRight}>Income</th>
-                    <th style={styles.thRight}>Expense</th>
-                    <th style={styles.thRight}>Net Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.length === 0 ? (
+          <div style={styles.kpiCard}>
+            <div style={styles.kpiTop}>
+              <span style={styles.kpiLabel}>Unpaid Fees</span>
+              <span style={styles.badgeAmber}>Pending Dues</span>
+            </div>
+            <div style={styles.kpiValue}>{formatMoney(unpaid.unpaid_amount)}</div>
+            <div style={styles.kpiMeta}>{unpaid.unpaid_count} unpaid fee records</div>
+          </div>
+
+          <div style={styles.kpiCard}>
+            <div style={styles.kpiTop}>
+              <span style={styles.kpiLabel}>Monthly Income</span>
+              <span style={styles.badgeNeutral}>Payments</span>
+            </div>
+            <div style={styles.kpiValue}>{formatMoney(fin.monthly_income)}</div>
+            <div style={styles.kpiMeta}>
+              {fromDate} to {toDate}
+            </div>
+          </div>
+
+          <div style={styles.kpiCard}>
+            <div style={styles.kpiTop}>
+              <span style={styles.kpiLabel}>Monthly Expenses</span>
+              <span style={styles.badgeNeutral}>Outflow</span>
+            </div>
+            <div style={styles.kpiValue}>{formatMoney(fin.monthly_expense)}</div>
+            <div style={styles.kpiMeta}>
+              {fromDate} to {toDate}
+            </div>
+          </div>
+
+          <div style={styles.kpiCard}>
+            <div style={styles.kpiTop}>
+              <span style={styles.kpiLabel}>Reconciled Net</span>
+              <span style={styles.badgeGreen}>Balanced</span>
+            </div>
+            <div
+              style={{
+                ...styles.kpiValue,
+                color: Number(fin.net_reconciled) < 0 ? "#b91c1c" : "#0f172a",
+              }}
+            >
+              {formatMoney(fin.net_reconciled)}
+            </div>
+            <div style={styles.kpiMeta}>Income minus expenses</div>
+          </div>
+        </div>
+
+        {/* Sub-navigation Pills (Matches StayLedger Pill Tabs) */}
+        <div style={styles.tabRow}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("overview")}
+            style={activeTab === "overview" ? styles.tabActive : styles.tabIdle}
+          >
+            Reconciliation Summary
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("monthly")}
+            style={activeTab === "monthly" ? styles.tabActive : styles.tabIdle}
+          >
+            Monthly View Report ({rows.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("explain")}
+            style={activeTab === "explain" ? styles.tabActive : styles.tabIdle}
+          >
+            EXPLAIN Performance Plan
+          </button>
+        </div>
+
+        {/* Tab Content Container */}
+        <div style={styles.panelCard}>
+          {activeTab === "overview" && (
+            <div>
+              <h3 style={styles.panelTitle}>Totals Reconciliation Breakdown</h3>
+              <p style={styles.panelDesc}>
+                Cross-check filtered period totals against the SQL reporting view (<code>view_monthly_financial_summary</code>).
+              </p>
+
+              <div style={styles.tableWrap}>
+                <table style={styles.table}>
+                  <thead>
                     <tr>
-                      <td colSpan={4} style={styles.emptyTd}>
-                        No monthly view records found for this filter range.
+                      <th style={styles.th}>Metric</th>
+                      <th style={styles.thRight}>Filtered Period</th>
+                      <th style={styles.thRight}>View Reconciled Total</th>
+                      <th style={styles.thRight}>Variance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={styles.td}>Total Income</td>
+                      <td style={styles.tdRight}>{formatMoney(fin.monthly_income)}</td>
+                      <td style={styles.tdRight}>{formatMoney(reconciled.total_income)}</td>
+                      <td style={styles.tdRight}>
+                        {formatMoney(Number(fin.monthly_income) - Number(reconciled.total_income))}
                       </td>
                     </tr>
-                  ) : (
-                    rows.map((r, idx) => (
-                      <tr key={r.period_ym ?? idx}>
-                        <td style={styles.td}>{r.period_ym}</td>
-                        <td style={styles.tdRight}>{formatMoney(r.total_income)}</td>
-                        <td style={styles.tdRight}>{formatMoney(r.total_expense)}</td>
-                        <td style={styles.tdRight}>{formatMoney(r.net_balance)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-                {rows.length > 0 && (
-                  <tfoot>
-                    <tr style={styles.totalRow}>
-                      <td style={styles.td}><strong>Reconciled Total</strong></td>
-                      <td style={styles.tdRight}><strong>{formatMoney(reconciled.total_income)}</strong></td>
-                      <td style={styles.tdRight}><strong>{formatMoney(reconciled.total_expense)}</strong></td>
-                      <td style={styles.tdRight}><strong>{formatMoney(reconciled.net_balance)}</strong></td>
+                    <tr>
+                      <td style={styles.td}>Total Expenses</td>
+                      <td style={styles.tdRight}>{formatMoney(fin.monthly_expense)}</td>
+                      <td style={styles.tdRight}>{formatMoney(reconciled.total_expense)}</td>
+                      <td style={styles.tdRight}>
+                        {formatMoney(Number(fin.monthly_expense) - Number(reconciled.total_expense))}
+                      </td>
                     </tr>
-                  </tfoot>
-                )}
-              </table>
+                    <tr style={styles.totalRow}>
+                      <td style={styles.td}><strong>Net Balance</strong></td>
+                      <td style={styles.tdRight}><strong>{formatMoney(fin.net_reconciled)}</strong></td>
+                      <td style={styles.tdRight}><strong>{formatMoney(reconciled.net_balance)}</strong></td>
+                      <td style={styles.tdRight}>
+                        <strong>
+                          {formatMoney(Number(fin.net_reconciled) - Number(reconciled.net_balance))}
+                        </strong>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === "explain" && (
-          <div>
-            <h3 style={styles.panelTitle}>Database Execution Plan (EXPLAIN)</h3>
-            <p style={styles.panelDesc}>
-              Verify index usage and scan strategy across SQLite / PostgreSQL aggregate queries.
-            </p>
+          {activeTab === "monthly" && (
+            <div>
+              <h3 style={styles.panelTitle}>Monthly Income & Expense Reporting View</h3>
+              <p style={styles.panelDesc}>
+                Aggregated monthly series returned from <code>view_monthly_financial_summary</code>.
+              </p>
 
-            {!explainData ? (
-              <div style={styles.emptyBox}>
-                Click <strong>EXPLAIN Query</strong> above to inspect the execution plan.
+              <div style={styles.tableWrap}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Period (YYYY-MM)</th>
+                      <th style={styles.thRight}>Income</th>
+                      <th style={styles.thRight}>Expense</th>
+                      <th style={styles.thRight}>Net Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} style={styles.emptyTd}>
+                          No monthly view records found for this filter range.
+                        </td>
+                      </tr>
+                    ) : (
+                      rows.map((r, idx) => (
+                        <tr key={r.period_ym ?? idx}>
+                          <td style={styles.td}>{r.period_ym}</td>
+                          <td style={styles.tdRight}>{formatMoney(r.total_income)}</td>
+                          <td style={styles.tdRight}>{formatMoney(r.total_expense)}</td>
+                          <td style={styles.tdRight}>{formatMoney(r.net_balance)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                  {rows.length > 0 && (
+                    <tfoot>
+                      <tr style={styles.totalRow}>
+                        <td style={styles.td}><strong>Reconciled Total</strong></td>
+                        <td style={styles.tdRight}><strong>{formatMoney(reconciled.total_income)}</strong></td>
+                        <td style={styles.tdRight}><strong>{formatMoney(reconciled.total_expense)}</strong></td>
+                        <td style={styles.tdRight}><strong>{formatMoney(reconciled.net_balance)}</strong></td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
               </div>
-            ) : (
-              <div>
-                <div style={styles.explainMeta}>
-                  <span><strong>Driver:</strong> {explainData.driver}</span>
-                  <span><strong>SQL:</strong> <code>{explainData.query}</code></span>
+            </div>
+          )}
+
+          {activeTab === "explain" && (
+            <div>
+              <h3 style={styles.panelTitle}>Database Execution Plan (EXPLAIN)</h3>
+              <p style={styles.panelDesc}>
+                Verify index usage and scan strategy across SQLite / PostgreSQL aggregate queries.
+              </p>
+
+              {!explainData ? (
+                <div style={styles.emptyBox}>
+                  Click <strong>EXPLAIN Query</strong> above to inspect the execution plan.
                 </div>
-                <pre style={styles.codeBlock}>{JSON.stringify(explainData.plan, null, 2)}</pre>
-              </div>
-            )}
-          </div>
-        )}
+              ) : (
+                <div>
+                  <div style={styles.explainMeta}>
+                    <span><strong>Driver:</strong> {explainData.driver}</span>
+                    <span><strong>SQL:</strong> <code>{explainData.query}</code></span>
+                  </div>
+                  <pre style={styles.codeBlock}>{JSON.stringify(explainData.plan, null, 2)}</pre>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -389,6 +394,8 @@ export default function Dashboard() {
 
 const styles = {
   page: {
+    flex: 1,
+    minWidth: 0,
     padding: "24px 28px",
     backgroundColor: "#f8fafc",
     minHeight: "100vh",
