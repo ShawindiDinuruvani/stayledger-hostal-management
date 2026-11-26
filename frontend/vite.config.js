@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => {
       host: 'localhost',
       port: 5173,
       proxy: {
+        '/api': {
+          target: unifiedBackend,
+          changeOrigin: true,
+        },
         '/native-api': {
           target: nativeBackend,
           changeOrigin: true,
