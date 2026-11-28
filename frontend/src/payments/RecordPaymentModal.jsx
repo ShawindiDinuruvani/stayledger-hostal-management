@@ -83,14 +83,14 @@ export default function RecordPaymentModal({ feeId, fee, onClose, onSuccess }) {
   }
 
   return (
-    <div className="pay-modal-backdrop" role="presentation" onMouseDown={event => event.target === event.currentTarget && onClose()}>
-      <section className="pay-modal" role="dialog" aria-modal="true" aria-labelledby="record-payment-title">
-        <div className="pay-modal-header">
+    <div className="mf-modal-backdrop" role="presentation" onMouseDown={event => event.target === event.currentTarget && onClose()}>
+      <section className="mf-modal" role="dialog" aria-modal="true" aria-labelledby="record-payment-title">
+        <div className="mf-modal-header">
           <div>
-            <span className="pay-eyebrow">PAYMENT RECORD</span>
-            <h2 id="record-payment-title">Record payment</h2>
+            <div className="mf-modal-eyebrow">Payment Record</div>
+            <h2 id="record-payment-title" className="mf-modal-title">Record Payment</h2>
           </div>
-          <button type="button" className="pay-icon-button" aria-label="Close" onClick={onClose} disabled={submitting}><X size={20} /></button>
+          <button type="button" className="mf-close-btn" aria-label="Close" onClick={onClose} disabled={submitting}><X size={20} /></button>
         </div>
         {loading ? (
           <div className="pay-loading">Loading fee details...</div>
@@ -99,7 +99,7 @@ export default function RecordPaymentModal({ feeId, fee, onClose, onSuccess }) {
             <div className="pay-modal-body">
               {error && <div className="pay-error" role="alert">{error}</div>}
               {details && (
-                <div className="pay-fee-summary">
+                <div className="mf-preview-box pay-fee-summary">
                   <div><span>Resident</span><strong>{details.resident_name}</strong></div>
                   <div><span>Fee</span><strong>{details.fee_code}</strong></div>
                   <div><span>Room</span><strong>{details.room_number || 'Unallocated'}</strong></div>
@@ -109,27 +109,27 @@ export default function RecordPaymentModal({ feeId, fee, onClose, onSuccess }) {
                 </div>
               )}
               <div className="pay-form-grid">
-                <label>Payment amount (LKR)
-                  <input type="number" min="0.01" step="0.01" value={amount} max={outstanding || undefined} onChange={e => setAmount(e.target.value)} required />
+                <label className="mf-form-group">Payment amount (LKR)
+                  <input className="mf-input" type="number" min="0.01" step="0.01" value={amount} max={outstanding || undefined} onChange={e => setAmount(e.target.value)} required />
                 </label>
-                <label>Payment date
-                  <input type="date" value={paidDate} max={new Date().toISOString().slice(0, 10)} onChange={e => setPaidDate(e.target.value)} required />
+                <label className="mf-form-group">Payment date
+                  <input className="mf-input" type="date" value={paidDate} max={new Date().toISOString().slice(0, 10)} onChange={e => setPaidDate(e.target.value)} required />
                 </label>
-                <label>Method
-                  <select value={method} onChange={e => setMethod(e.target.value)}>
+                <label className="mf-form-group">Method
+                  <select className="mf-select" value={method} onChange={e => setMethod(e.target.value)}>
                     <option value="CASH">Cash</option>
                     <option value="BANK">Bank</option>
                     <option value="CARD">Card</option>
                   </select>
                 </label>
-                <label>Reference number
-                  <input type="text" value={referenceNo} maxLength={100} onChange={e => setReferenceNo(e.target.value)} placeholder="Optional transaction reference" />
+                <label className="mf-form-group">Reference number
+                  <input className="mf-input" type="text" value={referenceNo} maxLength={100} onChange={e => setReferenceNo(e.target.value)} placeholder="Optional transaction reference" />
                 </label>
               </div>
             </div>
-            <div className="pay-modal-footer">
-              <button type="button" className="pay-btn pay-btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
-              <button type="submit" className="pay-btn pay-btn-primary" disabled={submitting || outstanding <= 0}>
+            <div className="mf-modal-footer">
+              <button type="button" className="mf-btn mf-btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+              <button type="submit" className="mf-btn mf-btn-primary" disabled={submitting || outstanding <= 0}>
                 <CheckCircle2 size={16} />{submitting ? 'Recording...' : 'Record payment'}
               </button>
             </div>
