@@ -110,6 +110,9 @@ class MonthlyFeeService
             // SECTION 6 REQUIREMENT: Honest Payment Integration Handling
             // Missing payment integration does not prove that no payment exists.
             if ($hasPaymentsTable) {
+                $paymentSum = DB::getDriverName() === 'pgsql'
+                    ? (float) $fee->amount_due - (float) (DB::selectOne('SELECT fn_fee_balance(?) AS balance', [$fee->fee_id])->balance ?? $fee->amount_due)
+                    : (float) DB::table('payments')->where('fee_id', $fee->fee_id)->sum('amount');
                 $paymentSum = DB::table('payments')
                     ->where('fee_id', $fee->fee_id)
                     ->sum('amount');
@@ -470,6 +473,9 @@ class MonthlyFeeService
 
         // Payment details check
         if (Schema::hasTable('payments')) {
+            $paymentSum = DB::getDriverName() === 'pgsql'
+                ? (float) $fee->amount_due - (float) (DB::selectOne('SELECT fn_fee_balance(?) AS balance', [$fee->fee_id])->balance ?? $fee->amount_due)
+                : (float) DB::table('payments')->where('fee_id', $fee->fee_id)->sum('amount');
             $paymentSum = DB::table('payments')
                 ->where('fee_id', $fee->fee_id)
                 ->sum('amount');

@@ -18,6 +18,12 @@ import {
   DollarSign,
   Info,
   ShieldCheck,
+  HelpCircle,
+  CreditCard
+} from 'lucide-react';
+import Sidebar from '../Sidebar.jsx';
+import { fetchWithAuth } from '../users/authFetch.js';
+import RecordPaymentModal from '../payments/RecordPaymentModal.jsx';
   HelpCircle
 } from 'lucide-react';
 import Sidebar from '../Sidebar.jsx';
@@ -76,6 +82,7 @@ export default function MonthlyFees({ onLogout, userRole }) {
   // Modals
   const [activeModal, setActiveModal] = useState(null); // 'generate' | 'details'
   const [selectedFee, setSelectedFee] = useState(null);
+  const [paymentFee, setPaymentFee] = useState(null);
 
   // Generation Form State
   const [genForm, setGenForm] = useState({
@@ -549,6 +556,18 @@ export default function MonthlyFees({ onLogout, userRole }) {
                         </td>
 
                         <td style={{ textAlign: 'right' }}>
+                          {isPaymentAvailable && Number(fee.balance_amount || 0) > 0 && (
+                            <button
+                              type="button"
+                              className="mf-btn mf-btn-primary"
+                              style={{ marginRight: 7 }}
+                              onClick={() => setPaymentFee(fee)}
+                              aria-label={`Record payment for ${fee.resident_name}`}
+                            >
+                              <CreditCard size={15} />
+                              <span>Pay</span>
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="mf-btn mf-btn-subtle"
@@ -930,6 +949,18 @@ export default function MonthlyFees({ onLogout, userRole }) {
               </div>
             </div>
           </div>
+        )}
+
+        {paymentFee && (
+          <RecordPaymentModal
+            feeId={paymentFee.fee_id}
+            fee={paymentFee}
+            onClose={() => setPaymentFee(null)}
+            onSuccess={() => {
+              showToast('Payment recorded successfully.');
+              fetchFees();
+            }}
+          />
         )}
 
         {/* Global Toast Message */}

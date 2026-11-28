@@ -9,6 +9,7 @@ import Expenses from './expenses/Expenses.jsx';
 import MonthlyFees from './fees/MonthlyFees.jsx';
 import UsersAccess from './users/UsersAccess.jsx';
 import AccountSettings from './users/AccountSettings.jsx';
+import Payments from './payments/Payments.jsx';
 
 function getHashPage() {
   return window.location.hash || '#allocations';
@@ -285,6 +286,10 @@ function App() {
 
   if (page === '#fees') {
     return <MonthlyFees onLogout={handleLogout} userRole={user.role} />;
+  }
+
+  if (page === '#payments') {
+    return <Payments onLogout={handleLogout} userRole={user.role} />;
   }
 
   if (page === '#expenses') {

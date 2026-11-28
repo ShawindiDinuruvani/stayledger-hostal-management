@@ -301,6 +301,7 @@ class MonthlyFeeApiTest extends TestCase
     }
 
     /**
+     * Test payment data handling when the payments module is available.
      * Test honest payment data handling when payments module is unlinked (Section 6 compliance).
      */
     public function test_fee_list_handles_unavailable_payment_data_honestly(): void
@@ -319,6 +320,10 @@ class MonthlyFeeApiTest extends TestCase
         $this->assertCount(2, $fees);
 
         $firstFee = $fees[0];
+        $this->assertEquals('UNPAID', $firstFee['payment_status']);
+        $this->assertEquals(0.0, (float) $firstFee['paid_amount']);
+        $this->assertEquals(18000.0, (float) $firstFee['balance_amount']);
+        $this->assertTrue($firstFee['payment_available']);
         // Section 6 requirement: Do not classify unknown records as unpaid or paid. Return unavailable status.
         $this->assertEquals('UNAVAILABLE', $firstFee['payment_status']);
         $this->assertNull($firstFee['paid_amount']);

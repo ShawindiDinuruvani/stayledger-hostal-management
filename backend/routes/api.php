@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\MonthlyFeeController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\RoomAllocationController;
 use App\Http\Controllers\SharedKitchenController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Middleware\EnsureAuthenticated;
 
 // Monthly Fees Module
@@ -13,6 +14,16 @@ Route::prefix('fees')->middleware([EnsureAuthenticated::class])->group(function 
     Route::get('/preview', [MonthlyFeeController::class, 'preview']);
     Route::post('/generate', [MonthlyFeeController::class, 'generate']);
     Route::get('/{id}', [MonthlyFeeController::class, 'show'])->whereNumber('id');
+});
+
+// Payments Module
+Route::middleware([EnsureAuthenticated::class])->group(function () {
+    Route::get('/payments', [PaymentController::class, 'history']);
+    Route::post('/payments/{id}/reverse', [PaymentController::class, 'reverse'])->whereNumber('id');
+    Route::post('/payments/{id}/correct', [PaymentController::class, 'correct'])->whereNumber('id');
+    Route::post('/fees/{id}/payments', [PaymentController::class, 'record'])->whereNumber('id');
+    Route::get('/fees/{id}/payments', [PaymentController::class, 'forFee'])->whereNumber('id');
+    Route::get('/fees/{id}/balance', [PaymentController::class, 'balance'])->whereNumber('id');
 });
 
 // Expenses Module
