@@ -19,10 +19,14 @@ CREATE TABLE floors (
 -- 2. Rooms Table (Rooms 01 to 20)
 CREATE TABLE rooms (
     room_id SERIAL PRIMARY KEY,
-    room_number VARCHAR(10) NOT NULL UNIQUE,
-    floor_id INT NOT NULL REFERENCES floors(floor_id) ON DELETE RESTRICT,
-    capacity INT NOT NULL DEFAULT 3 CHECK (capacity > 0 AND capacity <= 6),
-    status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE' CHECK (status IN ('AVAILABLE', 'MAINTENANCE'))
+    room_number VARCHAR(10) NOT NULL,
+    floor_id INT NOT NULL,
+    capacity INT NOT NULL DEFAULT 3,
+    status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
+    CONSTRAINT uq_rooms_room_number UNIQUE (room_number),
+    CONSTRAINT fk_rooms_floor FOREIGN KEY (floor_id) REFERENCES floors(floor_id) ON DELETE RESTRICT,
+    CONSTRAINT chk_rooms_capacity CHECK (capacity BETWEEN 1 AND 6),
+    CONSTRAINT chk_rooms_status CHECK (status IN ('AVAILABLE', 'MAINTENANCE'))
 );
 
 -- 3. Residents Table
@@ -62,31 +66,39 @@ DECLARE
     current_occ INT := 0;
     max_cap INT := 0;
     rm_status VARCHAR(20);
+    ignored_allocation_id INT := NULL;
 BEGIN
-    SELECT COUNT(*) INTO overlap_count
-    FROM room_allocations
-    WHERE resident_id = NEW.resident_id
-      AND (
-          (status = 'Active' AND NEW.status = 'Active')
-          OR (
-              NEW.start_date <= COALESCE(end_date, DATE '9999-12-31')
-              AND COALESCE(NEW.end_date, DATE '9999-12-31') >= start_date
-              AND status = 'Active'
-          )
-      );
-
-    IF overlap_count > 0 THEN
-        RAISE EXCEPTION 'DB Trigger Error: Resident already has an active or overlapping room allocation.';
-    END IF;
-
     IF NEW.status = 'Active' THEN
-        SELECT capacity, status INTO max_cap, rm_status FROM rooms WHERE room_id = NEW.room_id;
+        IF TG_OP = 'UPDATE' THEN
+            ignored_allocation_id := OLD.allocation_id;
+        END IF;
+
+        SELECT COUNT(*) INTO overlap_count
+        FROM room_allocations
+        WHERE resident_id = NEW.resident_id
+          AND status = 'Active'
+          AND allocation_id IS DISTINCT FROM ignored_allocation_id
+          AND NEW.start_date <= COALESCE(end_date, DATE '9999-12-31')
+          AND COALESCE(NEW.end_date, DATE '9999-12-31') >= start_date;
+
+        IF overlap_count > 0 THEN
+            RAISE EXCEPTION 'DB Trigger Error: Resident already has an active or overlapping room allocation.';
+        END IF;
+
+        SELECT capacity, status INTO max_cap, rm_status
+        FROM rooms
+        WHERE room_id = NEW.room_id
+        FOR UPDATE;
 
         IF rm_status = 'MAINTENANCE' THEN
             RAISE EXCEPTION 'DB Trigger Error: Target room is currently under maintenance.';
         END IF;
 
-        SELECT COUNT(*) INTO current_occ FROM room_allocations WHERE room_id = NEW.room_id AND status = 'Active';
+        SELECT COUNT(*) INTO current_occ
+        FROM room_allocations
+        WHERE room_id = NEW.room_id
+          AND status = 'Active'
+          AND allocation_id IS DISTINCT FROM ignored_allocation_id;
 
         IF current_occ >= max_cap THEN
             RAISE EXCEPTION 'DB Trigger Error: Target room has reached maximum bed capacity.';
@@ -98,22 +110,55 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_before_allocation_insert
-BEFORE INSERT ON room_allocations
+BEFORE INSERT OR UPDATE ON room_allocations
 FOR EACH ROW
 EXECUTE FUNCTION fn_before_allocation_insert();
+
+-- A room cannot be made smaller than its current occupancy or put into
+-- maintenance while residents are still assigned to it.
+CREATE OR REPLACE FUNCTION fn_before_room_capacity_update()
+RETURNS TRIGGER AS $$
+DECLARE
+    current_occ INT := 0;
+BEGIN
+    SELECT COUNT(*) INTO current_occ
+    FROM room_allocations
+    WHERE room_id = OLD.room_id AND status = 'Active';
+
+    IF NEW.capacity < current_occ THEN
+        RAISE EXCEPTION 'DB Trigger Error: Room capacity cannot be lower than its active occupancy.';
+    END IF;
+
+    IF NEW.status = 'MAINTENANCE' AND current_occ > 0 THEN
+        RAISE EXCEPTION 'DB Trigger Error: An occupied room cannot be placed under maintenance.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_before_room_capacity_update
+BEFORE UPDATE OF capacity, status ON rooms
+FOR EACH ROW
+EXECUTE FUNCTION fn_before_room_capacity_update();
 
 -- 6. Live Occupancy View (vw_room_occupancy)
 CREATE OR REPLACE VIEW vw_room_occupancy AS
 SELECT 
     rm.room_id,
-    CAST(rm.room_number AS INTEGER) AS room_num_int,
+    CASE
+        WHEN rm.room_number ~ '^[0-9]+$' THEN CAST(rm.room_number AS BIGINT)
+        ELSE NULL
+    END AS room_num_int,
     rm.room_number,
     fl.floor_id,
     fl.floor_name,
     rm.capacity,
+    rm.status,
     COUNT(ra.allocation_id)::INT AS occupied_beds,
     (rm.capacity - COUNT(ra.allocation_id))::INT AS available_beds,
     CASE 
+        WHEN rm.status = 'MAINTENANCE' THEN 'Maintenance'
         WHEN COUNT(ra.allocation_id) >= rm.capacity THEN 'Full'
         WHEN COUNT(ra.allocation_id) > 0 THEN 'Partial'
         ELSE 'Available'
@@ -122,8 +167,8 @@ FROM rooms rm
 INNER JOIN floors fl ON rm.floor_id = fl.floor_id
 LEFT JOIN room_allocations ra 
     ON rm.room_id = ra.room_id AND ra.status = 'Active'
-GROUP BY rm.room_id, rm.room_number, fl.floor_id, fl.floor_name, rm.capacity
-ORDER BY CAST(rm.room_number AS INTEGER) ASC;
+GROUP BY rm.room_id, rm.room_number, fl.floor_id, fl.floor_name, rm.capacity, rm.status
+ORDER BY room_num_int ASC, rm.room_number ASC;
 
 -- 7. Structural Setup: 2 Floors & 20 Rooms (01 to 20)
 INSERT INTO floors (floor_id, floor_name) VALUES (1, 'First floor'), (2, 'Second floor');

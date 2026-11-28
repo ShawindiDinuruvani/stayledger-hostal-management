@@ -94,14 +94,18 @@ export default function RoomAllocations({ onLogout, userRole }) {
   const metrics = useMemo(() => {
     const totalBeds = rooms.reduce((sum, r) => sum + Number(r.capacity), 0);
     const occupiedBeds = rooms.reduce((sum, r) => sum + Number(r.occupied_beds), 0);
-    const fullRooms = rooms.filter(r => r.occupancy_status === 'Full').length;
+    const fullRooms = rooms.filter(r => r.status !== 'MAINTENANCE' && r.occupancy_status === 'Full').length;
+    const maintenanceRooms = rooms.filter(r => r.status === 'MAINTENANCE').length;
     const transfersCount = allocations.filter(a => a.status === 'Transferred').length;
     const unallocatedCount = residents.filter(r => !Number(r.is_allocated)).length;
     return {
       totalBeds,
       occupiedBeds,
-      availableBeds: totalBeds - occupiedBeds,
+      availableBeds: rooms.reduce((sum, room) => (
+        sum + (room.status === 'MAINTENANCE' ? 0 : Number(room.available_beds))
+      ), 0),
       fullRooms,
+      maintenanceRooms,
       transfersCount,
       unallocatedCount
     };
@@ -111,6 +115,11 @@ export default function RoomAllocations({ onLogout, userRole }) {
     if (floorFilter === 'All') return rooms;
     return rooms.filter(r => r.floor_name === floorFilter);
   }, [rooms, floorFilter]);
+
+  const floorOptions = useMemo(
+    () => ['All', ...new Set(rooms.map(room => room.floor_name))],
+    [rooms]
+  );
 
   const filteredAllocations = useMemo(() => {
     return allocations.filter(a => {
@@ -202,7 +211,9 @@ export default function RoomAllocations({ onLogout, userRole }) {
   const openAllocateModal = (preselectedRoomId = '') => {
     setFormError('');
     const freeRes = residents.find(r => !Number(r.is_allocated))?.resident_id || '';
-    const freeRoom = preselectedRoomId || rooms.find(r => Number(r.available_beds) > 0)?.room_id || '';
+    const freeRoom = preselectedRoomId || rooms.find(
+      r => r.status !== 'MAINTENANCE' && Number(r.available_beds) > 0
+    )?.room_id || '';
     setAllocForm({
       resident_id: freeRes,
       room_id: freeRoom,
@@ -299,8 +310,8 @@ export default function RoomAllocations({ onLogout, userRole }) {
               <span className="sl-badge">Capacity Status</span>
             </div>
             <span className="sl-kpi-label">Available Rooms</span>
-            <strong>{rooms.length - metrics.fullRooms} / {rooms.length}</strong>
-            <small>{metrics.fullRooms} room(s) at full capacity</small>
+            <strong>{rooms.length - metrics.fullRooms - metrics.maintenanceRooms} / {rooms.length}</strong>
+            <small>{metrics.fullRooms} full · {metrics.maintenanceRooms} in maintenance</small>
           </div>
 
           <div className="sl-kpi-card">
@@ -356,7 +367,7 @@ export default function RoomAllocations({ onLogout, userRole }) {
                 <p>Showing Rooms 01 to 20 across First and Second floor</p>
               </div>
               <div className="sl-tabs">
-                {['All', 'First floor', 'Second floor'].map(fl => (
+                {floorOptions.map(fl => (
                   <button
                     key={fl}
                     className={'sl-tab ' + (floorFilter === fl ? 'active' : '')}
@@ -371,6 +382,7 @@ export default function RoomAllocations({ onLogout, userRole }) {
             <div className="sl-room-grid">
               {visibleRooms.map(rm => {
                 const isSelected = selectedRoomFilter === rm.room_number;
+                const isMaintenance = rm.status === 'MAINTENANCE';
                 const isFull = rm.occupancy_status === 'Full';
                 return (
                   <div
@@ -386,8 +398,8 @@ export default function RoomAllocations({ onLogout, userRole }) {
                         <strong>Room {rm.room_number}</strong>
                         <small>{rm.floor_name}</small>
                       </div>
-                      <span className={'sl-badge ' + (isFull ? 'amber' : '')}>
-                        {isFull ? 'Full' : `${rm.available_beds} free`}
+                      <span className={'sl-badge ' + (isFull || isMaintenance ? 'amber' : '')}>
+                        {isMaintenance ? 'Maintenance' : isFull ? 'Full' : `${rm.available_beds} free`}
                       </span>
                     </div>
 
@@ -402,7 +414,7 @@ export default function RoomAllocations({ onLogout, userRole }) {
 
                     <div className="sl-room-footer">
                       <span>{rm.occupied_beds}/{rm.capacity} beds occupied</span>
-                      {!isFull ? (
+                      {!isFull && !isMaintenance ? (
                         <button
                           className="sl-mini-btn"
                           onClick={e => {
@@ -413,7 +425,7 @@ export default function RoomAllocations({ onLogout, userRole }) {
                           + Assign
                         </button>
                       ) : (
-                        <span>Locked</span>
+                        <span>{isMaintenance ? 'Unavailable' : 'Locked'}</span>
                       )}
                     </div>
                   </div>
@@ -525,7 +537,9 @@ export default function RoomAllocations({ onLogout, userRole }) {
                                 setFormError('');
                                 setSelectedAlloc(row);
                                 const freeRm = rooms.find(
-                                  r => Number(r.available_beds) > 0 && Number(r.room_id) !== Number(row.room_id)
+                                  r => r.status !== 'MAINTENANCE' &&
+                                    Number(r.available_beds) > 0 &&
+                                    Number(r.room_id) !== Number(row.room_id)
                                 );
                                 setTransferForm({
                                   target_room_id: freeRm ? freeRm.room_id : '',
@@ -603,7 +617,7 @@ export default function RoomAllocations({ onLogout, userRole }) {
                 >
                   <option value="" disabled>-- Choose room --</option>
                   {rooms.map(rm => (
-                    <option key={rm.room_id} value={rm.room_id} disabled={Number(rm.available_beds) <= 0}>
+                    <option key={rm.room_id} value={rm.room_id} disabled={rm.status === 'MAINTENANCE' || Number(rm.available_beds) <= 0}>
                       Room {rm.room_number} ({rm.floor_name}) — {rm.occupied_beds}/{rm.capacity} Occupied
                     </option>
                   ))}
@@ -655,7 +669,7 @@ export default function RoomAllocations({ onLogout, userRole }) {
                   {rooms
                     .filter(r => Number(r.room_id) !== Number(selectedAlloc.room_id))
                     .map(rm => (
-                      <option key={rm.room_id} value={rm.room_id} disabled={Number(rm.available_beds) <= 0}>
+                      <option key={rm.room_id} value={rm.room_id} disabled={rm.status === 'MAINTENANCE' || Number(rm.available_beds) <= 0}>
                         Room {rm.room_number} ({rm.floor_name}) — {rm.available_beds} bed(s) free
                       </option>
                     ))}
