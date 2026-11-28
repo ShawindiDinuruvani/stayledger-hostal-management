@@ -113,6 +113,9 @@ class MonthlyFeeService
                 $paymentSum = DB::getDriverName() === 'pgsql'
                     ? (float) $fee->amount_due - (float) (DB::selectOne('SELECT fn_fee_balance(?) AS balance', [$fee->fee_id])->balance ?? $fee->amount_due)
                     : (float) DB::table('payments')->where('fee_id', $fee->fee_id)->sum('amount');
+                $paymentSum = DB::table('payments')
+                    ->where('fee_id', $fee->fee_id)
+                    ->sum('amount');
 
                 $fee->payment_status = $paymentSum >= $fee->amount_due ? 'PAID' : ($paymentSum > 0 ? 'PARTIALLY_PAID' : 'UNPAID');
                 $fee->paid_amount = (float) $paymentSum;
@@ -473,6 +476,9 @@ class MonthlyFeeService
             $paymentSum = DB::getDriverName() === 'pgsql'
                 ? (float) $fee->amount_due - (float) (DB::selectOne('SELECT fn_fee_balance(?) AS balance', [$fee->fee_id])->balance ?? $fee->amount_due)
                 : (float) DB::table('payments')->where('fee_id', $fee->fee_id)->sum('amount');
+            $paymentSum = DB::table('payments')
+                ->where('fee_id', $fee->fee_id)
+                ->sum('amount');
 
             $fee->payment_status = $paymentSum >= $fee->amount_due ? 'PAID' : ($paymentSum > 0 ? 'PARTIALLY_PAID' : 'UNPAID');
             $fee->paid_amount = (float) $paymentSum;

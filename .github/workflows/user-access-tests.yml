@@ -1,0 +1,222 @@
+name: StayLedger User Access Tests
+
+on:
+  push:
+    branches: [Kulara, main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/user-access-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-user-access:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, curl, xml, pdo_sqlite, sqlite3, pdo_pgsql, pgsql
+          tools: composer:v2
+          coverage: none
+
+      - name: Install Laravel dependencies
+        working-directory: backend
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Generate test app key
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run isolated database tests
+        working-directory: backend
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          SESSION_DRIVER: array
+          CACHE_STORE: array
+        run: php artisan test
+
+  frontend-build:
+    name: React production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --ignore-scripts
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  postgres-integration:
+    name: Isolated PostgreSQL integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stayledger_ci
+          POSTGRES_PASSWORD: local-ci-password-only
+          POSTGRES_DB: stayledger_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stayledger_ci -d stayledger_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'false'
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: stayledger_ci
+      DB_USERNAME: stayledger_ci
+      DB_PASSWORD: local-ci-password-only
+      DB_SSLMODE: disable
+      SESSION_DRIVER: array
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      DB_URL: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, curl, xml, pdo_sqlite, sqlite3, pdo_pgsql, pgsql
+          tools: composer:v2
+          coverage: none
+      - name: Install Laravel dependencies
+        working-directory: backend
+        run: composer install --prefer-dist --no-interaction --no-progress
+      - name: Create test application key
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+      - name: Load prerequisite PostgreSQL schemas
+        working-directory: backend
+        run: |
+          php -r "require 'vendor/autoload.php'; \$app = require 'bootstrap/app.php'; \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); \$pdo = Illuminate\Support\Facades\DB::connection()->getPdo(); foreach (['database/stayledger_allocations_schema.sql', 'database/stayledger_expenses_schema.sql', 'database/stayledger_kitchen.sql'] as \$f) { \$pdo->exec(file_get_contents(\$f)); } \$pdo->exec('TRUNCATE TABLE floors, rooms, residents, room_allocations RESTART IDENTITY CASCADE');"
+      - name: Run Laravel feature tests with PostgreSQL 16
+        working-directory: backend
+        run: php artisan test
+      - name: Inspect shared users schema read-only
+        working-directory: backend
+        run: php artisan stayledger:inspect-shared-users
+
+  browser-flow:
+    name: Real Laravel + React browser navigation
+    runs-on: ubuntu-24.04
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ${{ github.workspace }}/backend/database/browser-ci.sqlite
+      DB_URL: ''
+      SESSION_DRIVER: file
+      SESSION_COOKIE: stayledger_browser_ci_session
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      VITE_USER_ACCESS_API_URL: http://127.0.0.1:8001
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, curl, xml, pdo_sqlite, sqlite3
+          tools: composer:v2
+          coverage: none
+      - name: Prepare isolated Laravel testing database
+        working-directory: backend
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          cp .env.example .env
+          php artisan key:generate
+          touch database/browser-ci.sqlite
+          php -r "require 'vendor/autoload.php'; \$app = require 'bootstrap/app.php'; \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); Illuminate\Support\Facades\DB::statement('CREATE TABLE IF NOT EXISTS residents (resident_id INTEGER PRIMARY KEY AUTOINCREMENT, full_name VARCHAR(255))');"
+          php artisan migrate --force
+          php artisan tinker --execute="\App\Models\User::factory()->create(['email' => 'ci.admin@example.test', 'name' => 'CI Admin', 'role' => 'admin', 'is_active' => true, 'password' => 'CiAdminPassword123!']);"
+          php artisan tinker --execute="\App\Models\User::factory()->create(['email' => 'ci.staff@example.test', 'name' => 'CI Staff', 'role' => 'staff', 'is_active' => true, 'password' => 'CiStaffPassword123!']);"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install browser-test dependencies
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts
+          npm install --no-save --no-package-lock @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start unified Laravel and Vite applications
+        run: |
+          (cd backend && php artisan serve --host=127.0.0.1 --port=8001 > /tmp/stayledger-backend.log 2>&1) &
+          (cd frontend && npm run dev > /tmp/stayledger-vite.log 2>&1) &
+          for i in $(seq 1 45); do
+            if curl -fsS http://localhost:5173/laravel/csrf-token > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/stayledger-backend.log
+          cat /tmp/stayledger-vite.log
+          exit 1
+      - name: Confirm unified API rejects anonymous access
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H "Accept: application/json" http://127.0.0.1:8001/api/fees)
+          test "$code" = "401"
+      - name: Run browser tests against Laravel auth and React routes
+        working-directory: frontend
+        run: npx playwright test tests/system-flow.spec.cjs --reporter=line --workers=1
+
+  fees-auth-tests:
+    name: Monthly Fees central session integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, curl, xml, pdo_sqlite, sqlite3
+          tools: composer:v2
+          coverage: none
+      - name: Install Monthly Fees Laravel dependencies
+        working-directory: backend
+        run: composer install --prefer-dist --no-interaction --no-progress
+      - name: Run central session middleware tests in isolation
+        working-directory: backend
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          SESSION_DRIVER: array
+          CACHE_STORE: array
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan test --filter=CentralSessionMiddlewareTest

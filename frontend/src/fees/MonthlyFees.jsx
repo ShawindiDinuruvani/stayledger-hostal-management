@@ -24,6 +24,10 @@ import {
 import Sidebar from '../Sidebar.jsx';
 import { fetchWithAuth } from '../users/authFetch.js';
 import RecordPaymentModal from '../payments/RecordPaymentModal.jsx';
+  HelpCircle
+} from 'lucide-react';
+import Sidebar from '../Sidebar.jsx';
+import { fetchWithAuth } from '../users/authFetch.js';
 import './fees.css';
 
 // Module-specific Laravel API URL with environment variable support (Port 8001)

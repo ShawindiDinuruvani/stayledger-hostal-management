@@ -1,0 +1,37 @@
+import { defineConfig, loadEnv } from 'vite';
+
+// Unified StayLedger Laravel backend runs on port 8001.
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), 'VITE_');
+  const unifiedBackend = env.VITE_USER_ACCESS_API_URL || 'http://127.0.0.1:8001';
+  const feesBackend = env.VITE_FEES_BACKEND_URL || unifiedBackend;
+  const nativeBackend = env.VITE_NATIVE_BACKEND_URL || unifiedBackend;
+
+  return {
+    server: {
+      host: 'localhost',
+      port: 5173,
+      proxy: {
+        '/api': {
+          target: unifiedBackend,
+          changeOrigin: true,
+        },
+        '/native-api': {
+          target: nativeBackend,
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/native-api/, '/api'),
+        },
+        '/fees-api': {
+          target: feesBackend,
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/fees-api/, '/api'),
+        },
+        '/laravel': {
+          target: unifiedBackend,
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/laravel/, ''),
+        },
+      },
+    },
+  };
+});
