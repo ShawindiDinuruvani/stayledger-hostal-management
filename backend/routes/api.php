@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\MonthlyFeeController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\RoomAllocationController;
+use App\Http\Controllers\RoomManagementController;
 use App\Http\Controllers\SharedKitchenController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Middleware\EnsureAuthenticated;
@@ -35,6 +36,15 @@ Route::get('/allocations/dashboard', [RoomAllocationController::class, 'dashboar
 Route::post('/allocations', [RoomAllocationController::class, 'store']);
 Route::post('/allocations/{id}/transfer', [RoomAllocationController::class, 'transfer'])->whereNumber('id');
 Route::post('/allocations/{id}/checkout', [RoomAllocationController::class, 'checkout'])->whereNumber('id');
+
+// Floors and rooms management
+Route::get('/rooms-management', [RoomManagementController::class, 'index']);
+Route::post('/floors', [RoomManagementController::class, 'storeFloor']);
+Route::put('/floors/{id}', [RoomManagementController::class, 'updateFloor'])->whereNumber('id');
+Route::delete('/floors/{id}', [RoomManagementController::class, 'destroyFloor'])->whereNumber('id');
+Route::post('/rooms', [RoomManagementController::class, 'storeRoom']);
+Route::put('/rooms/{id}', [RoomManagementController::class, 'updateRoom'])->whereNumber('id');
+Route::delete('/rooms/{id}', [RoomManagementController::class, 'destroyRoom'])->whereNumber('id');
 
 // Shared Kitchen Module
 Route::get('/kitchen', [SharedKitchenController::class, 'index']);

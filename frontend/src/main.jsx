@@ -10,6 +10,7 @@ import MonthlyFees from './fees/MonthlyFees.jsx';
 import UsersAccess from './users/UsersAccess.jsx';
 import AccountSettings from './users/AccountSettings.jsx';
 import Payments from './payments/Payments.jsx';
+import RoomsFloors from './rooms/RoomsFloors.jsx';
 
 function getHashPage() {
   return window.location.hash || '#allocations';
@@ -298,6 +299,10 @@ function App() {
 
   if (page === '#dashboard') {
     return <Dashboard onLogout={handleLogout} userRole={user.role} />;
+  }
+
+  if (page === '#rooms') {
+    return <RoomsFloors onLogout={handleLogout} userRole={user.role} />;
   }
 
   return <RoomAllocations onLogout={handleLogout} userRole={user.role} />;

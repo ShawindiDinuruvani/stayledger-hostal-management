@@ -1,0 +1,121 @@
+.rooms-panel-header {
+  gap: 20px;
+}
+
+.rooms-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rooms-controls > select {
+  min-width: 150px;
+  border: 1px solid var(--sl-border);
+  border-radius: 8px;
+  padding: 9px 10px;
+  color: var(--sl-text);
+  background: #fff;
+  font: inherit;
+}
+
+.rooms-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rooms-row-actions button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--sl-muted);
+  background: #fff;
+  border: 1px solid var(--sl-border);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.rooms-row-actions button:hover {
+  color: var(--sl-green);
+  border-color: var(--sl-sage);
+}
+
+.rooms-row-actions button:last-child:hover {
+  color: var(--sl-danger-text);
+  border-color: #efb8b8;
+}
+
+.rooms-empty {
+  padding: 32px;
+  color: var(--sl-muted);
+  text-align: center;
+}
+
+.rooms-floor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 16px;
+}
+
+.rooms-floor-card {
+  padding: 20px;
+  background: var(--sl-surface);
+  border: 1px solid var(--sl-border);
+  border-radius: 12px;
+}
+
+.rooms-floor-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rooms-floor-card h3 {
+  margin-top: 16px;
+  color: var(--sl-charcoal);
+  font: 700 18px 'Manrope', sans-serif;
+}
+
+.rooms-floor-card > p {
+  margin-top: 3px;
+  color: var(--sl-muted);
+}
+
+.rooms-floor-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 13px 0;
+  border-top: 1px solid var(--sl-border);
+  border-bottom: 1px solid var(--sl-border);
+  color: var(--sl-muted);
+}
+
+.rooms-floor-stats strong {
+  color: var(--sl-green);
+}
+
+.rooms-floor-card > .sl-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.rooms-form-hint {
+  color: var(--sl-muted);
+  font-size: 12px;
+}
+
+.rooms-submit {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .rooms-panel-header,
+  .rooms-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
